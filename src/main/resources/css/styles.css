@@ -151,3 +151,53 @@
 .hyperlink:visited {
     -fx-text-fill: #8B0000;
 }
+
+/* ============================================= */
+/* VISTA VENDEDORES - ESTILOS ESPECÍFICOS         */
+/* ============================================= */
+
+.vendedores-table {
+    -fx-background-color: white;
+    -fx-border-color: #E6E6E6;
+    -fx-border-width: 1;
+    -fx-background-radius: 8;
+    -fx-padding: 8;
+}
+
+.vendedores-table .column-header {
+    -fx-background-color: #8B0000;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+}
+
+.search-field {
+    -fx-background-radius: 8;
+    -fx-border-color: #DADADA;
+    -fx-border-radius: 8;
+    -fx-padding: 6 8 6 8;
+}
+
+.dialog-field {
+    -fx-background-radius: 6;
+    -fx-border-color: #CCCCCC;
+    -fx-border-radius: 6;
+    -fx-border-width: 1;
+    -fx-padding: 6 8 6 8;
+}
+
+.dialog-button {
+    -fx-background-color: #DC143C;
+    -fx-text-fill: white;
+    -fx-background-radius: 6;
+    -fx-padding: 6 12 6 12;
+}
+
+.dialog-button.secondary {
+    -fx-background-color: #F0F0F0;
+    -fx-text-fill: #333;
+}
+
+.dialog-error {
+    -fx-text-fill: #B22222;
+    -fx-font-size: 12px;
+}

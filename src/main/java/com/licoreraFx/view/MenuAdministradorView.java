@@ -28,10 +28,8 @@ public class MenuAdministradorView {
         Button bInventarioTop = new Button("Inventario");
         // Ventas (gestión solicitada)
         Button bVentasTop = new Button("Ventas");
-        // Nueva venta
-        Button bNuevaVentaTop = new Button("Nueva venta");
-        // Agrupar facturas en una sola opción
-        Button bFacturasTop = new Button("Facturas");
+        // Compras (gestión solicitada)
+        Button bComprasTop = new Button("Compras");
 
         Button btnCerrarSesionTop = new Button("Cerrar sesión");
         btnCerrarSesionTop.setStyle("-fx-background-color: transparent; -fx-underline: true; -fx-text-fill: #333;");
@@ -44,10 +42,10 @@ public class MenuAdministradorView {
         Region topSpacer = new Region();
         HBox.setHgrow(topSpacer, Priority.ALWAYS);
 
-        topBar.getChildren().addAll(bVendedoresTop, bClientesTop, bProveedoresTop, bInventarioTop, bVentasTop, bNuevaVentaTop, bFacturasTop, topSpacer, btnCerrarSesionTop);
+        topBar.getChildren().addAll(bVendedoresTop, bClientesTop, bProveedoresTop, bInventarioTop, bVentasTop, bComprasTop, topSpacer, btnCerrarSesionTop);
 
         // -- Selección visual para botones superiores --
-        Button[] topButtons = new Button[] { bVendedoresTop, bClientesTop, bProveedoresTop, bInventarioTop, bVentasTop, bNuevaVentaTop, bFacturasTop };
+        Button[] topButtons = new Button[] { bVendedoresTop, bClientesTop, bProveedoresTop, bInventarioTop, bVentasTop, bComprasTop };
         String defaultStyle = "-fx-background-color: transparent; -fx-text-fill: #333;";
         String selectedStyle = "-fx-background-color: #E6E6E6; -fx-text-fill: #000; -fx-background-radius: 6;";
         for (Button tb : topButtons) tb.setStyle(defaultStyle);
@@ -78,28 +76,45 @@ public class MenuAdministradorView {
             actions.setPadding(new Insets(8, 0, 0, 0));
             actions.setAlignment(Pos.CENTER_RIGHT);
 
-            Button btnGuardar = new Button("Guardar");
+            // Decide qué botones mostrar: por requerimiento, quitar 'Guardar' en ciertas gestiones
+            boolean mostrarGuardar = true;
+            // quitar Guardar para estas gestiones (incluye sub-gestiones de Facturas)
+            if ("Vendedores".equals(nombreGestion)
+                    || "Clientes".equals(nombreGestion)
+                    || "Proveedores".equals(nombreGestion)
+                    || "Inventario".equals(nombreGestion)
+                    || "Ventas".equals(nombreGestion)
+                    || nombreGestion.startsWith("Facturas")) {
+                mostrarGuardar = false;
+            }
+
+            // Botones posibles
+            Button btnGuardar = null;
+            Button btnModificar = null;
             Button btnEliminar = new Button("Eliminar");
-            // Añadir: solo para Clientes, Vendedores y Proveedores
             Button btnAnadir = null;
-            if ("Clientes".equals(nombreGestion) || "Vendedores".equals(nombreGestion) || "Proveedores".equals(nombreGestion)) {
+
+            // Añadir: incluir para Clientes, Vendedores, Proveedores y también para Inventario
+            if ("Clientes".equals(nombreGestion) || "Vendedores".equals(nombreGestion) || "Proveedores".equals(nombreGestion) || "Inventario".equals(nombreGestion)) {
                 btnAnadir = new Button("Añadir");
                 btnAnadir.setOnAction(ev -> ejecutarAccion("Añadir", nombreGestion));
             }
 
-            // Modificar: omitir para 'Nueva Venta'
-            Button btnModificar = null;
+            // Modificar: omitir para 'Nueva Venta' (aunque ya no existe esa opción aquí)
             if (!"Nueva Venta".equals(nombreGestion)) {
                 btnModificar = new Button("Modificar");
                 btnModificar.setOnAction(ev -> ejecutarAccion("Modificar", nombreGestion));
             }
 
-            // Guardar y Eliminar siempre
-            btnGuardar.setOnAction(ev -> ejecutarAccion("Guardar", nombreGestion));
+            if (mostrarGuardar) {
+                btnGuardar = new Button("Guardar");
+                btnGuardar.setOnAction(ev -> ejecutarAccion("Guardar", nombreGestion));
+            }
+
             btnEliminar.setOnAction(ev -> ejecutarAccion("Eliminar", nombreGestion));
 
-            // Añadir los botones en orden: Guardar, (Añadir), (Modificar), Eliminar
-            actions.getChildren().add(btnGuardar);
+            // Orden: (Guardar opcional), Añadir opcional, Modificar opcional, Eliminar
+            if (btnGuardar != null) actions.getChildren().add(btnGuardar);
             if (btnAnadir != null) actions.getChildren().add(btnAnadir);
             if (btnModificar != null) actions.getChildren().add(btnModificar);
             actions.getChildren().add(btnEliminar);
@@ -130,45 +145,43 @@ public class MenuAdministradorView {
         };
 
         // Asociar botones superiores a la selección
-        bVendedoresTop.setOnAction(e -> seleccionarGestion.accept("Vendedores", bVendedoresTop));
-        bClientesTop.setOnAction(e -> seleccionarGestion.accept("Clientes", bClientesTop));
-        bProveedoresTop.setOnAction(e -> seleccionarGestion.accept("Proveedores", bProveedoresTop));
-        bInventarioTop.setOnAction(e -> seleccionarGestion.accept("Inventario", bInventarioTop));
-        bVentasTop.setOnAction(e -> seleccionarGestion.accept("Ventas", bVentasTop));
-
-        // Handler para Nueva venta: muestra formulario/placeholder para crear venta
-        bNuevaVentaTop.setOnAction(e -> {
-            seleccionarGestion.accept("Nueva Venta", bNuevaVentaTop);
-            // (el content se actualiza dentro seleccionarGestion)
+        bVendedoresTop.setOnAction(e -> {
+            setSelectedTop.accept(bVendedoresTop);
+            // Mostrar la vista real de Vendedores (la propia vista incluye sus botones de acción)
+            com.licoreraFx.view.VendedoresView vv = new com.licoreraFx.view.VendedoresView();
+            vv.mostrar(contentArea);
+        });
+        bClientesTop.setOnAction(e -> {
+            setSelectedTop.accept(bClientesTop);
+            // Mostrar la vista real de Clientes
+            com.licoreraFx.view.ClientesView cv = new com.licoreraFx.view.ClientesView();
+            cv.mostrar(contentArea);
+        });
+        bProveedoresTop.setOnAction(e -> {
+            setSelectedTop.accept(bProveedoresTop);
+            // Mostrar la vista real de Proveedores
+            com.licoreraFx.view.ProveedoresView pv = new com.licoreraFx.view.ProveedoresView();
+            pv.mostrar(contentArea);
+        });
+        bInventarioTop.setOnAction(e -> {
+            setSelectedTop.accept(bInventarioTop);
+            // Mostrar la vista real de Inventario
+            com.licoreraFx.view.InventarioView iv = new com.licoreraFx.view.InventarioView();
+            iv.mostrar(contentArea);
+        });
+        bVentasTop.setOnAction(e -> {
+            setSelectedTop.accept(bVentasTop);
+            // Mostrar la vista real de Ventas
+            com.licoreraFx.view.VentasView vv = new com.licoreraFx.view.VentasView();
+            vv.mostrar(contentArea);
+        });
+        bComprasTop.setOnAction(e -> {
+            setSelectedTop.accept(bComprasTop);
+            // Mostrar la vista real de Compras
+            com.licoreraFx.view.ComprasView cv = new com.licoreraFx.view.ComprasView();
+            cv.mostrar(contentArea);
         });
 
-        // Nuevo comportamiento para 'Facturas': mostrar selector de tipo dentro del contentArea
-        bFacturasTop.setOnAction(e -> {
-            // marcar la opción Facturas en la barra
-            setSelectedTop.accept(bFacturasTop);
-
-            contentTitle.setText("Facturas");
-            contentArea.getChildren().clear();
-            Label encabezado = new Label("Gestión: Facturas");
-            encabezado.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
-            Label info = new Label("Elija el tipo de factura: Clientes o Proveedores.");
-            info.setWrapText(true);
-
-            Button opcionClientes = new Button("Facturas de Clientes");
-            Button opcionProveedores = new Button("Facturas de Proveedores");
-            opcionClientsSetup(opcionClientes, contentArea, gestionActual);
-            opcionProvidersSetup(opcionProveedores, contentArea, gestionActual);
-
-            HBox opciones = new HBox(10, opcionClientes, opcionProveedores);
-            opciones.setAlignment(Pos.CENTER);
-
-            Region mockRegion = new Region();
-            mockRegion.setPrefHeight(220);
-            mockRegion.setStyle("-fx-border-color: #DDD; -fx-border-style: solid; -fx-background-color: #FAFAFA;");
-
-            contentArea.getChildren().addAll(encabezado, info, opciones, mockRegion);
-            // Nota: las acciones de Guardar/Modificar/Eliminar se agregan dentro de los helpers de facturas
-        });
 
         // Cerrar sesión: volver al LoginView
         btnCerrarSesionTop.setOnAction(e -> {
@@ -189,8 +202,8 @@ public class MenuAdministradorView {
             });
         });
 
-        // Mostrar 'Nueva Venta' por defecto al abrir el menú (y marcar el botón)
-        seleccionarGestion.accept("Nueva Venta", bNuevaVentaTop);
+        // Mostrar 'Vendedores' por defecto al abrir el menú: ejecutar el handler del botón
+        bVendedoresTop.fire();
 
         // Usar BorderPane para posición superior/centro/inferior (sin pie global: acciones se agregan por gestión)
         BorderPane root = new BorderPane();
@@ -203,61 +216,6 @@ public class MenuAdministradorView {
         stage.show();
     }
 
-    // Helper para configurar botón 'Facturas de Clientes'
-    private void opcionClientsSetup(Button opcionClientes, VBox contentArea, String[] gestionActual) {
-        opcionClientes.setOnAction(ev -> {
-            gestionActual[0] = "Facturas - Clientes";
-            contentArea.getChildren().clear();
-            Label encabezado = new Label("Facturas de Clientes");
-            encabezado.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
-            Label info = new Label("Aquí aparecerá la lista de facturas de clientes, filtros y detalles.");
-            info.setWrapText(true);
-            Region mockRegion = new Region();
-            mockRegion.setPrefHeight(260);
-            mockRegion.setStyle("-fx-border-color: #DDD; -fx-border-style: solid; -fx-background-color: #FFFDF6;");
-            contentArea.getChildren().addAll(encabezado, info, mockRegion);
-            // Agregar barra de acciones para facturas de clientes
-            HBox actions = new HBox(8);
-            actions.setPadding(new Insets(8, 0, 0, 0));
-            actions.setAlignment(Pos.CENTER_RIGHT);
-            Button btnGuardar = new Button("Guardar");
-            Button btnModificar = new Button("Modificar");
-            Button btnEliminar = new Button("Eliminar");
-            btnGuardar.setOnAction(e -> ejecutarAccion("Guardar", "Facturas - Clientes"));
-            btnModificar.setOnAction(e -> ejecutarAccion("Modificar", "Facturas - Clientes"));
-            btnEliminar.setOnAction(e -> ejecutarAccion("Eliminar", "Facturas - Clientes"));
-            actions.getChildren().addAll(btnGuardar, btnModificar, btnEliminar);
-            contentArea.getChildren().add(actions);
-        });
-    }
-
-    // Helper para configurar botón 'Facturas de Proveedores'
-    private void opcionProvidersSetup(Button opcionProveedores, VBox contentArea, String[] gestionActual) {
-        opcionProveedores.setOnAction(ev -> {
-            gestionActual[0] = "Facturas - Proveedores";
-            contentArea.getChildren().clear();
-            Label encabezado = new Label("Facturas de Proveedores");
-            encabezado.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
-            Label info = new Label("Aquí aparecerá la lista de facturas de proveedores, filtros y detalles.");
-            info.setWrapText(true);
-            Region mockRegion = new Region();
-            mockRegion.setPrefHeight(260);
-            mockRegion.setStyle("-fx-border-color: #DDD; -fx-border-style: solid; -fx-background-color: #FFFDF6;");
-            contentArea.getChildren().addAll(encabezado, info, mockRegion);
-            // Agregar barra de acciones para facturas de proveedores
-            HBox actions = new HBox(8);
-            actions.setPadding(new Insets(8, 0, 0, 0));
-            actions.setAlignment(Pos.CENTER_RIGHT);
-            Button btnGuardar = new Button("Guardar");
-            Button btnModificar = new Button("Modificar");
-            Button btnEliminar = new Button("Eliminar");
-            btnGuardar.setOnAction(e -> ejecutarAccion("Guardar", "Facturas - Proveedores"));
-            btnModificar.setOnAction(e -> ejecutarAccion("Modificar", "Facturas - Proveedores"));
-            btnEliminar.setOnAction(e -> ejecutarAccion("Eliminar", "Facturas - Proveedores"));
-            actions.getChildren().addAll(btnGuardar, btnModificar, btnEliminar);
-            contentArea.getChildren().add(actions);
-        });
-    }
 
     // Ejecuta la acción solicitada según la gestión actual (placeholders específicos)
     private void ejecutarAccion(String accion, String gestion) {
@@ -270,28 +228,25 @@ public class MenuAdministradorView {
                           "Se eliminó (placeholder) el cliente seleccionado.";
                 break;
             case "Vendedores":
-                message = accion + " (placeholder) en Vendedores.";
+                message = accion + " (placeholder) in Vendedores.";
                 break;
             case "Proveedores":
-                message = accion + " (placeholder) en Proveedores.";
+                message = accion + " (placeholder) in Proveedores.";
                 break;
             case "Inventario":
-                message = accion + " (placeholder) en Inventario de productos.";
+                message = accion + " (placeholder) in Inventario de productos.";
                 break;
             case "Nueva Venta":
                 message = accion.equals("Guardar") ? "Venta registrada (placeholder)." : accion + " (placeholder) en Venta.";
                 break;
             case "Ventas":
-                message = accion + " (placeholder) en Ventas (listado).";
+                message = accion + " (placeholder) in Ventas (listado).";
                 break;
-            case "Facturas - Clientes":
-                message = accion + " (placeholder) en Facturas de Clientes.";
-                break;
-            case "Facturas - Proveedores":
-                message = accion + " (placeholder) en Facturas de Proveedores.";
+            case "Compras":
+                message = accion + " (placeholder) in Compras a Proveedores.";
                 break;
             default:
-                message = accion + " (placeholder) en " + gestion + ".";
+                message = accion + " (placeholder) in " + gestion + ".";
         }
 
         Alert a = new Alert(Alert.AlertType.INFORMATION);

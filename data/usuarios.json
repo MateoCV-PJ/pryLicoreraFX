@@ -2,12 +2,9 @@
   {
     "username": "admin",
     "password": "admin123",
-    "rol": "ADMIN"
-  },
-  {
-    "username": "vendedor",
-    "password": "vend123",
-    "rol": "VENDEDOR"
+    "rol": "ADMIN",
+    "nombre": "Administrador",
+    "email": "admin@example.com",
+    "telefono": ""
   }
 ]
-

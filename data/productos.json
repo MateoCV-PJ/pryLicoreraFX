@@ -1,0 +1,26 @@
+[
+  {
+    "id": "1",
+    "nombre": "Cerveza Pilsen x6",
+    "descripcion": "Cerveza en lata x6 unidades",
+    "precio": 19900.0,
+    "stock": 25,
+    "imagen": "Cerveza-sixpack-lata-PILSEN.jpg"
+  },
+  {
+    "id": "2",
+    "nombre": "Aguardiente Antioqueño Rojo 1L",
+    "descripcion": "Aguardiente Antioqueño Rojo Caja de un 1L",
+    "precio": 98000.0,
+    "stock": 30,
+    "imagen": "Aguardiente-Antioqueno-Caja-X-1-lt.jpg"
+  },
+  {
+    "id": "3",
+    "nombre": "Cerveza Lata Aguila x6",
+    "descripcion": "",
+    "precio": 19900.0,
+    "stock": 40,
+    "imagen": "Cerveza-Lata-Sixpack-AGUILA.jpg"
+  }
+]

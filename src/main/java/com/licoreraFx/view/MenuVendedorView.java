@@ -27,7 +27,6 @@ public class MenuVendedorView {
         Button bClientesTop = new Button("Clientes");
         Button bInventarioTop = new Button("Inventario");
         Button bVentasTop = new Button("Ventas");
-        Button bNuevaVentaTop = new Button("Nueva venta");
         Button bFacturasTop = new Button("Facturas");
 
         Button btnCerrarSesionTop = new Button("Cerrar sesión");
@@ -40,10 +39,10 @@ public class MenuVendedorView {
         Region topSpacer = new Region();
         HBox.setHgrow(topSpacer, Priority.ALWAYS);
 
-        topBar.getChildren().addAll(bClientesTop, bInventarioTop, bVentasTop, bNuevaVentaTop, bFacturasTop, topSpacer, btnCerrarSesionTop);
+        topBar.getChildren().addAll(bClientesTop, bInventarioTop, bVentasTop, bFacturasTop, topSpacer, btnCerrarSesionTop);
 
         // -- Selección visual para botones superiores (vendedor) --
-        Button[] topButtons = new Button[] { bClientesTop, bInventarioTop, bVentasTop, bNuevaVentaTop, bFacturasTop };
+        Button[] topButtons = new Button[] { bClientesTop, bInventarioTop, bVentasTop, bFacturasTop };
         String defaultStyle = "-fx-background-color: transparent; -fx-text-fill: #333;";
         String selectedStyle = "-fx-background-color: #E6E6E6; -fx-text-fill: #000; -fx-background-radius: 6;";
         for (Button tb : topButtons) tb.setStyle(defaultStyle);
@@ -132,59 +131,38 @@ public class MenuVendedorView {
         bInventarioTop.setOnAction(e -> { setSelectedTop.accept(bInventarioTop); mostrarVista.accept("Inventario"); });
         bVentasTop.setOnAction(e -> { setSelectedTop.accept(bVentasTop); mostrarVista.accept("Ventas"); });
 
-        // Nueva venta muestra un formulario (placeholder)
-        bNuevaVentaTop.setOnAction(e -> {
-             // marcar visualmente
-             setSelectedTop.accept(bNuevaVentaTop);
-             contentTitle.setText("Nueva venta");
-             contentArea.getChildren().clear();
+        // Facturas: mostrar selector dentro del contentArea
+        bFacturasTop.setOnAction(e -> {
+            // marcar visualmente el botón Facturas
+            setSelectedTop.accept(bFacturasTop);
+            contentTitle.setText("Facturas");
+            contentArea.getChildren().clear();
+            Label encabezado = new Label("Facturas");
+            encabezado.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
 
-             Label encabezado = new Label("Formulario - Nueva Venta (vista rápida)");
-             encabezado.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
-             Label info = new Label("En esta pantalla el vendedor podrá iniciar una nueva venta. Implementa el formulario real más adelante.");
-             info.setWrapText(true);
+            // Mostrar directamente la opción de facturas de clientes para el vendedor
+            Button opcionClientes = new Button("Facturas de Clientes");
 
-             Region formMock = new Region();
-             formMock.setPrefHeight(300);
-             formMock.setStyle("-fx-border-color: #CCC; -fx-background-color: #FFFDF6;");
+            opcionClientes.setOnAction(ev -> {
+                // mantener marcado el botón Facturas mientras se muestran las sub-opciones
+                setSelectedTop.accept(bFacturasTop);
+                contentArea.getChildren().clear();
+                Label h = new Label("Facturas de Clientes (solo vista)");
+                h.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
+                Label t = new Label("Listado de facturas de venta. Aquí puede ver detalles pero no editar.");
+                t.setWrapText(true);
+                Region r = new Region(); r.setPrefHeight(260); r.setStyle("-fx-border-color: #DDD; -fx-background-color: #FFFDF6;");
+                contentArea.getChildren().addAll(h, t, r);
+                // agregar acciones para esta sub-gestión
+                agregarBarraAcciones.accept("Facturas - Clientes", contentArea);
+            });
 
-             contentArea.getChildren().addAll(encabezado, info, formMock);
-             // Agregar barra de acciones (no incluirá 'Modificar' por diseño)
-             agregarBarraAcciones.accept("Nueva Venta", contentArea);
-         });
+            HBox opciones = new HBox(10, opcionClientes);
+            opciones.setAlignment(Pos.CENTER);
 
-         // Facturas: mostrar selector dentro del contentArea
-         bFacturasTop.setOnAction(e -> {
-             // marcar visualmente el botón Facturas
-             setSelectedTop.accept(bFacturasTop);
-             contentTitle.setText("Facturas");
-             contentArea.getChildren().clear();
-             Label encabezado = new Label("Facturas");
-             encabezado.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
-
-             // Mostrar directamente la opción de facturas de clientes para el vendedor
-             Button opcionClientes = new Button("Facturas de Clientes");
-
-             opcionClientes.setOnAction(ev -> {
-                 // mantener marcado el botón Facturas mientras se muestran las sub-opciones
-                 setSelectedTop.accept(bFacturasTop);
-                 contentArea.getChildren().clear();
-                 Label h = new Label("Facturas de Clientes (solo vista)");
-                 h.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
-                 Label t = new Label("Listado de facturas de venta. Aquí puede ver detalles pero no editar.");
-                 t.setWrapText(true);
-                 Region r = new Region(); r.setPrefHeight(260); r.setStyle("-fx-border-color: #DDD; -fx-background-color: #FFFDF6;");
-                 contentArea.getChildren().addAll(h, t, r);
-                 // agregar acciones para esta sub-gestión
-                 agregarBarraAcciones.accept("Facturas - Clientes", contentArea);
-             });
-
-             HBox opciones = new HBox(10, opcionClientes);
-             opciones.setAlignment(Pos.CENTER);
-
-             Region mockRegion = new Region(); mockRegion.setPrefHeight(200); mockRegion.setStyle("-fx-border-color: #DDD; -fx-background-color: #FAFAFA;");
-             contentArea.getChildren().addAll(encabezado, opciones, mockRegion);
-         });
+            Region mockRegion = new Region(); mockRegion.setPrefHeight(200); mockRegion.setStyle("-fx-border-color: #DDD; -fx-background-color: #FAFAFA;");
+            contentArea.getChildren().addAll(encabezado, opciones, mockRegion);
+        });
 
         // Clientes: mostrar tabla placeholder y botones Agregar/Modificar
         bClientesTop.setOnAction(e -> { setSelectedTop.accept(bClientesTop); showClientesView(contentArea); agregarBarraAcciones.accept("Clientes", contentArea); });
@@ -202,8 +180,9 @@ public class MenuVendedorView {
             });
         });
 
-        // Mostrar 'Nueva Venta' por defecto al abrir el menú (dispara el handler y aplica selección)
-        bNuevaVentaTop.fire();
+        // Mostrar 'Clientes' por defecto al abrir el menú (en lugar de 'Nueva Venta')
+        setSelectedTop.accept(bClientesTop);
+        mostrarVista.accept("Clientes");
 
         // No footer CRUD for vendedor (vista sólo)
         BorderPane root = new BorderPane();

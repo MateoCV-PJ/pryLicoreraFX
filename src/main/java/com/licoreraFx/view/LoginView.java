@@ -375,3 +375,4 @@ public class LoginView {
         this.onLoginHandler = onLoginHandler;
     }
 }
+
