@@ -2,13 +2,16 @@ package com.licoreraFx.view;
 
 import com.licoreraFx.model.Venta;
 import com.licoreraFx.model.DetalleVenta;
-import com.licoreraFx.util.JsonManager;
+import com.licoreraFx.repository.VentaRepository;
+import javafx.concurrent.Task;
 import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.SimpleDoubleProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
 import javafx.geometry.Insets;
+import javafx.application.Platform;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
@@ -21,12 +24,15 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 
 import java.util.List;
+import com.licoreraFx.model.Cliente;
+import com.licoreraFx.repository.ClienteRepository;
 
 public class VentasView {
 
-    private TableView<Venta> table;
     private ObservableList<Venta> masterData;
     private FilteredList<Venta> filtered;
+
+    private Node cachedView = null;
 
     public Node createView() {
         VBox root = new VBox(10);
@@ -38,33 +44,34 @@ public class VentasView {
 
         // Campo de búsqueda
         TextField tfSearch = new TextField();
-        tfSearch.getStyleClass().add("search-field");
         tfSearch.setPromptText("Buscar por ID de venta o nombre de cliente...");
         tfSearch.setMaxWidth(Double.MAX_VALUE);
         HBox searchBox = new HBox(8, tfSearch);
         HBox.setHgrow(tfSearch, Priority.ALWAYS);
 
-        List<Venta> ventas = JsonManager.listarVentas();
-        masterData = FXCollections.observableArrayList(ventas);
+        masterData = FXCollections.observableArrayList();
 
-        table = new TableView<>();
-        table.getStyleClass().add("ventas-table");
+        TableView<Venta> table = new TableView<>();
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_ALL_COLUMNS);
         table.setPrefHeight(320);
         table.setMinHeight(200);
         table.setMaxHeight(Region.USE_PREF_SIZE);
 
-        TableColumn<Venta, String> colId = new TableColumn<>("ID");
+        TableColumn<Venta, String> colId = new TableColumn<>();
         colId.setCellValueFactory(cell -> new SimpleStringProperty(cell.getValue().getId()));
+        Label lblId = new Label("ID"); lblId.setStyle("-fx-font-weight: bold;"); colId.setGraphic(lblId); colId.setStyle("-fx-alignment: CENTER;");
 
-        TableColumn<Venta, String> colCliente = new TableColumn<>("Cliente");
+        TableColumn<Venta, String> colCliente = new TableColumn<>();
         colCliente.setCellValueFactory(cell -> new SimpleStringProperty(cell.getValue().getNombreCliente()));
+        Label lblCliente = new Label("Cliente"); lblCliente.setStyle("-fx-font-weight: bold;"); colCliente.setGraphic(lblCliente); colCliente.setStyle("-fx-alignment: CENTER;");
 
 
-        TableColumn<Venta, String> colTotal = new TableColumn<>("Total");
+        TableColumn<Venta, String> colTotal = new TableColumn<>();
         colTotal.setCellValueFactory(cell -> new SimpleStringProperty(String.format("$%.2f", cell.getValue().getTotal())));
+        Label lblTotal = new Label("Total"); lblTotal.setStyle("-fx-font-weight: bold;"); colTotal.setGraphic(lblTotal); colTotal.setStyle("-fx-alignment: CENTER;");
 
-        TableColumn<Venta, Void> colAccion = new TableColumn<>("Acción");
+        TableColumn<Venta, Void> colAccion = new TableColumn<>();
+        Label lblAccion = new Label("Acción"); lblAccion.setStyle("-fx-font-weight: bold;"); colAccion.setGraphic(lblAccion); colAccion.setStyle("-fx-alignment: CENTER;");
         colAccion.setCellFactory(param -> new TableCell<>() {
             private final Button btnVerFactura = new Button("Ver Factura");
             private final Button btnEliminar = new Button("Eliminar");
@@ -112,13 +119,34 @@ public class VentasView {
         root.getChildren().addAll(titulo, searchBox, table);
         VBox.setVgrow(table, Priority.ALWAYS);
 
+        // Cargar datos en background
+        loadDataAsync();
+
         return root;
     }
 
     public void mostrar(VBox contentArea) {
-        Node view = createView();
+        Node view = cachedView;
+        if (view == null) {
+            view = createView();
+            cachedView = view;
+        }
         contentArea.getChildren().clear();
         contentArea.getChildren().add(view);
+    }
+
+    private void loadDataAsync() {
+        Task<List<Venta>> task = new Task<>() {
+            @Override protected List<Venta> call() {
+                return VentaRepository.listarVentas();
+            }
+        };
+        task.setOnSucceeded(e -> {
+            List<Venta> lista = task.getValue();
+            if (lista != null) masterData.setAll(lista);
+        });
+        task.setOnFailed(e -> { Throwable ex = task.getException(); if (ex != null) ex.printStackTrace(System.err); });
+        new Thread(task).start();
     }
 
     private void eliminarVenta(Venta venta) {
@@ -129,7 +157,7 @@ public class VentasView {
 
         confirmacion.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
-                boolean ok = JsonManager.eliminarVenta(venta.getId());
+                boolean ok = VentaRepository.eliminarVenta(venta.getId());
                 if (ok) {
                     masterData.remove(venta);
                     new Alert(Alert.AlertType.INFORMATION, "Venta eliminada exitosamente.", ButtonType.OK).showAndWait();
@@ -148,51 +176,122 @@ public class VentasView {
         VBox root = new VBox(10);
         root.setPadding(new Insets(12));
 
-        Label lblCliente = new Label("Cliente: " + venta.getNombreCliente());
-        lblCliente.setStyle("-fx-font-weight: bold;");
+        // Obtener datos del cliente (si existen) para mostrar detalle completo
+        String documento = "-"; String direccion = "-"; String correo = "-"; String idCliente = venta.getClienteId() != null ? venta.getClienteId() : "-";
+        try {
+            java.util.Optional<Cliente> clOpt = ClienteRepository.buscarClientePorId(venta.getClienteId());
+            if (clOpt.isPresent()) {
+                Cliente c = clOpt.get();
+                documento = c.getDocumento() != null ? c.getDocumento() : "-";
+                direccion = c.getDireccion() != null ? c.getDireccion() : "-";
+                correo = c.getEmail() != null ? c.getEmail() : "-";
+                idCliente = c.getId() != null ? c.getId() : idCliente;
+            }
+        } catch (Exception ignored) {}
 
-
-        Separator sep = new Separator();
-
-        Label lblProductos = new Label("Productos:");
-        lblProductos.setStyle("-fx-font-weight: bold;");
+        Label lblCliente = new Label("Cliente: " + (venta.getNombreCliente() != null ? venta.getNombreCliente() : "-"));
+        Label lblDocumento = new Label("Documento: " + documento);
+        Label lblDireccion = new Label("Dirección: " + direccion);
+        Label lblCorreo = new Label("Correo: " + correo);
+        Label lblIdCliente = new Label("ID Cliente: " + idCliente);
 
         TableView<DetalleVenta> tableDetalles = new TableView<>();
+        tableDetalles.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         ObservableList<DetalleVenta> detalles = FXCollections.observableArrayList(venta.getDetalles());
         tableDetalles.setItems(detalles);
 
-        TableColumn<DetalleVenta, String> colProducto = new TableColumn<>("Producto");
+        TableColumn<DetalleVenta, String> colProducto = new TableColumn<>();
         colProducto.setCellValueFactory(cell -> new SimpleStringProperty(cell.getValue().getNombreProducto()));
-        colProducto.setPrefWidth(200);
+        Label lblProd = new Label("Producto"); lblProd.setStyle("-fx-font-weight: bold;"); colProducto.setGraphic(lblProd); colProducto.setStyle("-fx-alignment: CENTER-LEFT;");
+        colProducto.setPrefWidth(300);
 
-        TableColumn<DetalleVenta, String> colCantidad = new TableColumn<>("Cantidad");
-        colCantidad.setCellValueFactory(cell -> new SimpleStringProperty(String.valueOf(cell.getValue().getCantidad())));
-        colCantidad.setPrefWidth(100);
+        TableColumn<DetalleVenta, Number> colCantidad = new TableColumn<>();
+        colCantidad.setCellValueFactory(cell -> new SimpleDoubleProperty(cell.getValue().getCantidad()));
+        Label lblCant = new Label("Cantidad"); lblCant.setStyle("-fx-font-weight: bold;"); colCantidad.setGraphic(lblCant); colCantidad.setStyle("-fx-alignment: CENTER;");
+        colCantidad.setPrefWidth(120);
+        colCantidad.setCellFactory(tc -> new TableCell<>() {
+            @Override protected void updateItem(Number item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) setText(null);
+                else setText(String.format("%d", item.intValue()));
+                setStyle("-fx-alignment: CENTER_RIGHT;");
+            }
+        });
 
-        TableColumn<DetalleVenta, String> colPrecio = new TableColumn<>("Precio Unit.");
-        colPrecio.setCellValueFactory(cell -> new SimpleStringProperty(String.format("$%.2f", cell.getValue().getPrecioUnitario())));
-        colPrecio.setPrefWidth(100);
+        TableColumn<DetalleVenta, Number> colPrecio = new TableColumn<>();
+        colPrecio.setCellValueFactory(cell -> new SimpleDoubleProperty(cell.getValue().getPrecioUnitario()));
+        Label lblPrecioUnit = new Label("Precio Unit."); lblPrecioUnit.setStyle("-fx-font-weight: bold;"); colPrecio.setGraphic(lblPrecioUnit); colPrecio.setStyle("-fx-alignment: CENTER;");
+        colPrecio.setPrefWidth(120);
+        colPrecio.setCellFactory(tc -> new TableCell<>() {
+            @Override protected void updateItem(Number item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) setText(null);
+                else setText(String.format("$%.2f", item.doubleValue()));
+                setStyle("-fx-alignment: CENTER_RIGHT;");
+            }
+        });
 
-        TableColumn<DetalleVenta, String> colSubtotal = new TableColumn<>("Subtotal");
-        colSubtotal.setCellValueFactory(cell -> new SimpleStringProperty(String.format("$%.2f", cell.getValue().getSubtotal())));
-        colSubtotal.setPrefWidth(100);
+        TableColumn<DetalleVenta, Number> colSubtotal = new TableColumn<>();
+        colSubtotal.setCellValueFactory(cell -> new SimpleDoubleProperty(cell.getValue().getSubtotal()));
+        Label lblSubtotal = new Label("Subtotal"); lblSubtotal.setStyle("-fx-font-weight: bold;"); colSubtotal.setGraphic(lblSubtotal); colSubtotal.setStyle("-fx-alignment: CENTER;");
+        colSubtotal.setPrefWidth(120);
+        colSubtotal.setCellFactory(tc -> new TableCell<>() {
+            @Override protected void updateItem(Number item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) setText(null);
+                else setText(String.format("$%.2f", item.doubleValue()));
+                setStyle("-fx-alignment: CENTER_RIGHT;");
+            }
+        });
 
-        //noinspection unchecked
         tableDetalles.getColumns().addAll(colProducto, colCantidad, colPrecio, colSubtotal);
+        // Quitar columnas vacías (sin texto y sin graphic) que pudieran aparecer como columnas 'filler'
+        Platform.runLater(() -> {
+            try {
+                var cols = tableDetalles.getColumns();
+                for (int i = cols.size() - 1; i >= 0; i--) {
+                    TableColumn<?, ?> col = cols.get(i);
+                    String header = col.getText();
+                    boolean hasGraphic = col.getGraphic() != null;
+                    if ((header == null || header.trim().isEmpty()) && !hasGraphic) {
+                        cols.remove(i);
+                    }
+                }
+            } catch (Exception ignored) {}
+        });
 
-        Label lblTotal = new Label(String.format("TOTAL: $%.2f", venta.getTotal()));
-        lblTotal.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
+        // Calcular totales
+        double subtotalVal = 0;
+        for (DetalleVenta dv : detalles) subtotalVal += dv.getSubtotal();
+        double ivaVal = subtotalVal * 0.19; // 19%
+        double totalPagarVal = subtotalVal + ivaVal;
 
+        Label lblSubtotalVal = new Label("Subtotal: $" + String.format("%.2f", subtotalVal));
+        Label lblIvaVal = new Label("IVA (19%): $" + String.format("%.2f", ivaVal));
+        Label lblTotalVal = new Label("Total a pagar: $" + String.format("%.2f", totalPagarVal));
+
+        // Mostrar totales en líneas separadas, alineados a la derecha
+        VBox totales = new VBox(6);
+        totales.setAlignment(Pos.CENTER_RIGHT);
+        Label lSubtotalLine = new Label(lblSubtotalVal.getText()); lSubtotalLine.setStyle(lblSubtotalVal.getStyle());
+        Label lIvaLine = new Label(lblIvaVal.getText()); lIvaLine.setStyle(lblIvaVal.getStyle());
+        Label lTotalLine = new Label(lblTotalVal.getText()); lTotalLine.setStyle(lblTotalVal.getStyle());
+        // Forzar que las etiquetas ocupen ancho completo para respetar alineación derecha
+        lSubtotalLine.setMaxWidth(Double.MAX_VALUE); lSubtotalLine.setAlignment(Pos.CENTER_RIGHT);
+        lIvaLine.setMaxWidth(Double.MAX_VALUE); lIvaLine.setAlignment(Pos.CENTER_RIGHT);
+        lTotalLine.setMaxWidth(Double.MAX_VALUE); lTotalLine.setAlignment(Pos.CENTER_RIGHT);
+        totales.getChildren().addAll(lSubtotalLine, lIvaLine, lTotalLine);
+
+        // Botón Cerrar alineado a la derecha
         Button btnCerrar = new Button("Cerrar");
-        btnCerrar.setOnAction(e -> dialog.close());
+        btnCerrar.setOnAction(ev -> dialog.close());
         HBox btnBox = new HBox(btnCerrar);
         btnBox.setAlignment(Pos.CENTER_RIGHT);
 
-        root.getChildren().addAll(lblCliente, sep, lblProductos, tableDetalles, lblTotal, btnBox);
+        root.getChildren().addAll(new VBox(2, lblCliente, lblDocumento, lblDireccion, lblCorreo, lblIdCliente), new Label("Productos:"), tableDetalles, totales, btnBox);
 
         Scene scene = new Scene(root, 600, 400);
         dialog.setScene(scene);
         dialog.showAndWait();
     }
 }
-

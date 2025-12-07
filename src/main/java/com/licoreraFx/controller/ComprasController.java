@@ -1,8 +1,9 @@
-package com.licoreraFx.view;
+package com.licoreraFx.controller;
 
 import com.licoreraFx.model.Compra;
 import com.licoreraFx.model.Proveedor;
 import com.licoreraFx.util.JsonManager;
+import javafx.application.Platform;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -10,7 +11,6 @@ import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
 import javafx.geometry.Insets;
-import javafx.application.Platform;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
@@ -26,11 +26,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-/**
- * Vista de Compras a Proveedores, similar a la gestión de Ventas.
- */
-public class ComprasView {
+public class ComprasController {
 
+    private TableView<Compra> table;
     private ObservableList<Compra> masterData;
     private FilteredList<Compra> filtered;
     private Map<String, Proveedor> proveedoresById;
@@ -49,58 +47,33 @@ public class ComprasView {
         HBox searchBox = new HBox(8, tfSearch);
         HBox.setHgrow(tfSearch, Priority.ALWAYS);
 
-        // Datos de proveedores para mostrar nombres
         List<Proveedor> proveedores = JsonManager.listarProveedores();
         proveedoresById = proveedores.stream().collect(Collectors.toMap(Proveedor::getId, p -> p));
 
-        // Cargar compras
         List<Compra> compras = JsonManager.listarCompras();
         masterData = FXCollections.observableArrayList(compras);
 
-        // table como variable local (no es necesario campo de instancia)
-        TableView<Compra> table = new TableView<>();
+        table = new TableView<>();
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_ALL_COLUMNS);
         table.setPrefHeight(360);
         table.setMinHeight(240);
         table.setMaxHeight(Region.USE_PREF_SIZE);
 
-        TableColumn<Compra, String> colId = new TableColumn<>();
+        TableColumn<Compra, String> colId = new TableColumn<>("ID");
         colId.setCellValueFactory(cdf -> new SimpleStringProperty(cdf.getValue().getId()));
-        Label lblColId = new Label("ID"); lblColId.setStyle("-fx-font-weight: bold;"); colId.setGraphic(lblColId); colId.setStyle("-fx-alignment: CENTER;");
-        colId.setPrefWidth(80);
-
-        TableColumn<Compra, String> colProveedor = new TableColumn<>();
+        TableColumn<Compra, String> colProveedor = new TableColumn<>("Proveedor");
         colProveedor.setCellValueFactory(cdf -> {
             Proveedor p = proveedoresById.get(cdf.getValue().getProveedorId());
             return new SimpleStringProperty(p != null ? p.getNombreEmpresa() : "-");
         });
-        Label lblColProv = new Label("Proveedor"); lblColProv.setStyle("-fx-font-weight: bold;"); colProveedor.setGraphic(lblColProv); colProveedor.setStyle("-fx-alignment: CENTER;");
-        colProveedor.setPrefWidth(220);
-
-        TableColumn<Compra, String> colFactura = new TableColumn<>();
+        TableColumn<Compra, String> colFactura = new TableColumn<>("Factura");
         colFactura.setCellValueFactory(cdf -> new SimpleStringProperty(cdf.getValue().getNumeroFactura()));
-        Label lblColFact = new Label("Factura"); lblColFact.setStyle("-fx-font-weight: bold;"); colFactura.setGraphic(lblColFact); colFactura.setStyle("-fx-alignment: CENTER;");
-        colFactura.setPrefWidth(120);
-
-        TableColumn<Compra, Number> colTotal = new TableColumn<>();
+        TableColumn<Compra, Number> colTotal = new TableColumn<>("Total");
         colTotal.setCellValueFactory(cdf -> new SimpleDoubleProperty(cdf.getValue().getTotal()));
-        Label lblColTotal = new Label("Total"); lblColTotal.setStyle("-fx-font-weight: bold;"); colTotal.setGraphic(lblColTotal); colTotal.setStyle("-fx-alignment: CENTER;");
-        // Formatear como moneda
-        colTotal.setCellFactory(tc -> new TableCell<>() {
-            @Override protected void updateItem(Number item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || item == null) setText(null);
-                else setText(String.format("$%.2f", item.doubleValue()));
-            }
-        });
-        colTotal.setPrefWidth(100);
-
-        TableColumn<Compra, String> colPago = new TableColumn<>();
+        TableColumn<Compra, String> colPago = new TableColumn<>("Método Pago");
         colPago.setCellValueFactory(cdf -> new SimpleStringProperty(cdf.getValue().getMetodoPago()));
-        Label lblColPago = new Label("Método Pago"); lblColPago.setStyle("-fx-font-weight: bold;"); colPago.setGraphic(lblColPago); colPago.setStyle("-fx-alignment: CENTER;");
-        colPago.setPrefWidth(140);
 
-        TableColumn<Compra, Void> colAccion = new TableColumn<>();
+        TableColumn<Compra, Void> colAccion = new TableColumn<>("Acción");
         colAccion.setCellFactory(param -> new TableCell<>() {
             private final Button btnVer = new Button("Ver factura");
             private final Button btnEliminar = new Button("Eliminar");
@@ -128,18 +101,11 @@ public class ComprasView {
             @Override
             protected void updateItem(Void item, boolean empty) {
                 super.updateItem(item, empty);
-                if (empty) setGraphic(null);
-                else {
-                    box.setAlignment(Pos.CENTER);
-                    setGraphic(box);
-                }
+                setGraphic(empty ? null : box);
             }
         });
-        Label lblColAccion = new Label("Acción"); lblColAccion.setStyle("-fx-font-weight: bold;"); colAccion.setGraphic(lblColAccion); colAccion.setStyle("-fx-alignment: CENTER;");
-        colAccion.setPrefWidth(160);
 
-        final java.util.List<TableColumn<Compra, ?>> _cols = java.util.Arrays.asList(colId, colProveedor, colFactura, colTotal, colPago, colAccion);
-        table.getColumns().addAll(_cols);
+        table.getColumns().addAll(colId, colProveedor, colFactura, colTotal, colPago, colAccion);
         Platform.runLater(() -> {
             try {
                 var cols = table.getColumns();
@@ -174,9 +140,9 @@ public class ComprasView {
     }
 
     public void mostrar(VBox contentArea) {
+        // Mostrar la vista programática para evitar el uso de FXML
         Node view = createView();
-        contentArea.getChildren().clear();
-        contentArea.getChildren().add(view);
+        contentArea.getChildren().setAll(view);
     }
 
     private void mostrarFactura(Compra compra) {
@@ -189,53 +155,22 @@ public class ComprasView {
 
         Proveedor p = proveedoresById.get(compra.getProveedorId());
         Label lblProv = new Label("Proveedor: " + (p != null ? p.getNombreEmpresa() : compra.getProveedorId()));
-        Label lblRut = new Label("RUT: " + (p != null && p.getRut() != null ? p.getRut() : "-"));
-        Label lblDir = new Label("Dirección: " + (p != null && p.getDireccion() != null ? p.getDireccion() : "-"));
-        Label lblCorreo = new Label("Correo: " + (p != null && p.getEmail() != null ? p.getEmail() : "-"));
         Label lblFac = new Label("Factura: " + compra.getNumeroFactura());
+        Label lblPago = new Label("Método de Pago: " + compra.getMetodoPago());
+        Label lblTotal = new Label("Total: $" + String.format("%.2f", compra.getTotal()));
 
-        // Tabla de items: Producto | Cantidad | Precio unitario
         TableView<Compra.Item> tablaItems = new TableView<>();
-        tablaItems.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         ObservableList<Compra.Item> items = FXCollections.observableArrayList(compra.getItems());
         tablaItems.setItems(items);
-
-        TableColumn<Compra.Item, String> cProd = new TableColumn<>();
+        TableColumn<Compra.Item, String> cProd = new TableColumn<>("Producto");
         cProd.setCellValueFactory(ci -> new SimpleStringProperty(ci.getValue().getNombreProducto()));
-        Label lblCProd = new Label("Producto"); lblCProd.setStyle("-fx-font-weight: bold;"); cProd.setGraphic(lblCProd); cProd.setStyle("-fx-alignment: CENTER-LEFT;");
-        cProd.setPrefWidth(300);
-
-        TableColumn<Compra.Item, Number> cCant = new TableColumn<>();
+        TableColumn<Compra.Item, Number> cCant = new TableColumn<>("Cantidad");
         cCant.setCellValueFactory(ci -> new SimpleDoubleProperty(ci.getValue().getCantidad()));
-        Label lblCCant = new Label("Cantidad"); lblCCant.setStyle("-fx-font-weight: bold;"); cCant.setGraphic(lblCCant); cCant.setStyle("-fx-alignment: CENTER;");
-        cCant.setPrefWidth(120);
-
-        TableColumn<Compra.Item, Number> cPrecio = new TableColumn<>();
+        TableColumn<Compra.Item, Number> cPrecio = new TableColumn<>("Precio");
         cPrecio.setCellValueFactory(ci -> new SimpleDoubleProperty(ci.getValue().getPrecio()));
-        Label lblCPrecio = new Label("Precio Unit."); lblCPrecio.setStyle("-fx-font-weight: bold;"); cPrecio.setGraphic(lblCPrecio); cPrecio.setStyle("-fx-alignment: CENTER;");
-        cPrecio.setCellFactory(tc -> new TableCell<>() {
-            @Override protected void updateItem(Number item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || item == null) setText(null);
-                else setText(String.format("$%.2f", item.doubleValue()));
-            }
-        });
-        cPrecio.setPrefWidth(120);
-
-        TableColumn<Compra.Item, Number> cSub = new TableColumn<>();
+        TableColumn<Compra.Item, Number> cSub = new TableColumn<>("Subtotal");
         cSub.setCellValueFactory(ci -> new SimpleDoubleProperty(ci.getValue().getPrecio() * ci.getValue().getCantidad()));
-        Label lblCSub = new Label("Subtotal"); lblCSub.setStyle("-fx-font-weight: bold;"); cSub.setGraphic(lblCSub); cSub.setStyle("-fx-alignment: CENTER;");
-        cSub.setCellFactory(tc -> new TableCell<>() {
-            @Override protected void updateItem(Number item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || item == null) setText(null);
-                else setText(String.format("$%.2f", item.doubleValue()));
-            }
-        });
-        cSub.setPrefWidth(120);
-
-        final java.util.List<TableColumn<Compra.Item, ?>> _colsItems = java.util.Arrays.asList(cProd, cCant, cPrecio, cSub);
-        tablaItems.getColumns().addAll(_colsItems);
+        tablaItems.getColumns().addAll(cProd, cCant, cPrecio, cSub);
         Platform.runLater(() -> {
             try {
                 var cols = tablaItems.getColumns();
@@ -247,32 +182,8 @@ public class ComprasView {
             } catch (Exception ignored) {}
         });
 
-        // Calcular subtotal e IVA (19%) y total
-        double subtotalVal = 0;
-        for (Compra.Item it : items) subtotalVal += it.getCantidad() * it.getPrecio();
-        double ivaVal = subtotalVal * 0.19; // 19%
-        double totalVal = subtotalVal + ivaVal;
-
-        Label lblSubtotalVal = new Label("Subtotal: $" + String.format("%.2f", subtotalVal));
-        Label lblIvaVal = new Label("IVA (19%): $" + String.format("%.2f", ivaVal));
-        Label lblTotalVal = new Label("Total: $" + String.format("%.2f", totalVal));
-
-        // Agrupar información del proveedor en una columna
-        VBox proveedorBox = new VBox(4, lblProv, lblRut, lblDir, lblCorreo, lblFac);
-        proveedorBox.setPadding(new Insets(4,0,6,0));
-
-        VBox totalesBox = new VBox(6, lblSubtotalVal, lblIvaVal, lblTotalVal);
-        totalesBox.setAlignment(Pos.CENTER_RIGHT);
-        totalesBox.setPadding(new Insets(8,0,0,0));
-
-        // Botón Cerrar alineado a la derecha
-        Button btnCerrar = new Button("Cerrar");
-        btnCerrar.setOnAction(ev -> dialog.close());
-        HBox btnBox = new HBox(btnCerrar);
-        btnBox.setAlignment(Pos.CENTER_RIGHT);
-
-        root.getChildren().addAll(proveedorBox, new Label("Detalle:"), tablaItems, totalesBox, btnBox);
-        Scene scene = new Scene(root, 700, 500);
+        root.getChildren().addAll(lblProv, lblFac, lblPago, lblTotal, new Label("Detalle:"), tablaItems);
+        Scene scene = new Scene(root, 600, 400);
         dialog.setScene(scene);
         dialog.showAndWait();
     }

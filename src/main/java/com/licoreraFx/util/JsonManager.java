@@ -8,7 +8,7 @@ import com.licoreraFx.model.Cliente;
 import com.licoreraFx.model.Proveedor;
 import com.licoreraFx.model.Producto;
 import com.licoreraFx.model.Venta;
-import com.licoreraFx.model.DetalleVenta;
+import com.licoreraFx.model.Compra;
 
 import java.io.FileReader;
 import java.io.Reader;
@@ -28,6 +28,7 @@ public class JsonManager {
     private static final String PROVEEDORES_PATH = "data/proveedores.json";
     private static final String PRODUCTOS_PATH = "data/productos.json";
     private static final String VENTAS_PATH = "data/ventas.json";
+    private static final String COMPRAS_PATH = "data/compras.json";
 
     // Crear Gson con formato pretty printing
     private static final Gson gson = new GsonBuilder()
@@ -505,17 +506,8 @@ public class JsonManager {
             }
             ventas.add(venta);
 
-            // Actualizar el stock de los productos vendidos
-            List<Producto> productos = listarProductos();
-            for (DetalleVenta detalle : venta.getDetalles()) {
-                for (Producto p : productos) {
-                    if (p.getId().equals(detalle.getProductoId())) {
-                        p.setStock(p.getStock() - detalle.getCantidad());
-                        break;
-                    }
-                }
-            }
-            guardarProductos(productos);
+            // Nota: la actualización del stock se realiza en VentaService.crearVenta
+            // para evitar decrementar el stock dos veces no actualizamos productos aquí.
 
             return guardarVentas(ventas);
         } catch (Exception e) {
@@ -534,6 +526,119 @@ public class JsonManager {
         } catch (Exception e) {
             System.err.println("Error eliminando venta: " + e.getMessage());
             return false;
+        }
+    }
+
+    // ----------------- Métodos para compras -----------------
+    public static List<Compra> listarCompras() {
+        try {
+            Path path = Path.of(COMPRAS_PATH);
+            if (!Files.exists(path)) {
+                return new ArrayList<>();
+            }
+            try (Reader reader = new FileReader(path.toFile())) {
+                Type listType = new TypeToken<List<Compra>>() {}.getType();
+                List<Compra> compras = gson.fromJson(reader, listType);
+                return compras != null ? compras : new ArrayList<>();
+            }
+        } catch (Exception e) {
+            System.err.println("Error leyendo compras JSON: " + e.getMessage());
+            return new ArrayList<>();
+        }
+    }
+
+    public static boolean guardarCompras(List<Compra> compras) {
+        try {
+            Path path = Path.of(COMPRAS_PATH);
+            if (path.getParent() != null && !Files.exists(path.getParent())) {
+                Files.createDirectories(path.getParent());
+            }
+            try (Writer writer = Files.newBufferedWriter(path)) {
+                gson.toJson(compras, writer);
+            }
+            return true;
+        } catch (Exception e) {
+            System.err.println("Error guardando compras JSON: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public static String generarIdCompra() {
+        try {
+            List<Compra> compras = listarCompras();
+            long maxId = compras.stream()
+                    .map(Compra::getId)
+                    .filter(id -> id != null && id.matches("\\d+"))
+                    .mapToLong(Long::parseLong)
+                    .max()
+                    .orElse(0);
+            return String.valueOf(maxId + 1);
+        } catch (Exception e) {
+            return "1";
+        }
+    }
+
+    public static boolean agregarCompra(Compra compra) {
+        try {
+            List<Compra> compras = listarCompras();
+            if (compra.getId() == null || compra.getId().trim().isEmpty()) {
+                compra.setId(generarIdCompra());
+            }
+            compras.add(compra);
+            // Actualizar el stock de los productos involucrados en la compra (sumar cantidades)
+            try {
+                List<Producto> productos = listarProductos();
+                for (Compra.Item item : compra.getItems()) {
+                    for (Producto p : productos) {
+                        if (p.getId().equals(item.getProductoId())) {
+                            // sumar la cantidad comprada
+                            int newStock = p.getStock() + item.getCantidad();
+                            p.setStock(Math.max(0, newStock));
+                            break;
+                        }
+                    }
+                }
+                guardarProductos(productos);
+            } catch (Exception ex) {
+                System.err.println("Error actualizando stock tras compra: " + ex.getMessage());
+            }
+            return guardarCompras(compras);
+        } catch (Exception e) {
+            System.err.println("Error agregando compra: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public static boolean eliminarCompra(String id) {
+        try {
+            List<Compra> compras = listarCompras();
+            boolean removed = compras.removeIf(c -> c != null && id.equals(c.getId()));
+            if (!removed) return false;
+            return guardarCompras(compras);
+        } catch (Exception e) {
+            System.err.println("Error eliminando compra: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public static Optional<Producto> buscarProductoPorId(String id) {
+        if (id == null) return Optional.empty();
+        List<Producto> productos = listarProductos();
+        return productos.stream().filter(p -> id.equals(p.getId())).findFirst();
+    }
+
+    public static String generarIdVenta() {
+        try {
+            List<Venta> ventas = listarVentas();
+            long maxId = ventas.stream()
+                    .map(Venta::getId)
+                    .filter(id -> id != null && id.matches("\\d+"))
+                    .mapToLong(Long::parseLong)
+                    .max()
+                    .orElse(0);
+            return String.valueOf(maxId + 1);
+        } catch (Exception e) {
+            return "1";
         }
     }
 }

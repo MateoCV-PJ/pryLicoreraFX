@@ -1,18 +1,10 @@
 [
   {
-    "id": "1",
-    "nombre": "Cerveza Pilsen x6",
-    "descripcion": "Cerveza en lata x6 unidades",
-    "precio": 19900.0,
-    "stock": 25,
-    "imagen": "Cerveza-sixpack-lata-PILSEN.jpg"
-  },
-  {
     "id": "2",
     "nombre": "Aguardiente Antioqueño Rojo 1L",
     "descripcion": "Aguardiente Antioqueño Rojo Caja de un 1L",
     "precio": 98000.0,
-    "stock": 30,
+    "stock": 19,
     "imagen": "Aguardiente-Antioqueno-Caja-X-1-lt.jpg"
   },
   {
@@ -20,7 +12,23 @@
     "nombre": "Cerveza Lata Aguila x6",
     "descripcion": "",
     "precio": 19900.0,
-    "stock": 40,
+    "stock": 3,
     "imagen": "Cerveza-Lata-Sixpack-AGUILA.jpg"
+  },
+  {
+    "id": "4",
+    "nombre": "Club Colombia x6",
+    "descripcion": "cerveza de la buena",
+    "precio": 15800.0,
+    "stock": 0,
+    "imagen": "Cerveza-x-6-lata-dorada-Club-colombia.jpg"
+  },
+  {
+    "id": "5",
+    "nombre": "Guaro Verde",
+    "descripcion": "Guaro pa gays",
+    "precio": 100000.0,
+    "stock": 10,
+    "imagen": "Aguardiente-Verde-X-1lt.jpg"
   }
 ]

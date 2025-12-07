@@ -1,1 +1,9 @@
-[{"id":"1","nombre":"Mateo Cv","email":"mateocv@gmail.com","telefono":"31379455884","documento":"1007108185"}]
+[
+  {
+    "id": "1",
+    "nombre": "Sebastian Varela Garcia",
+    "email": "sebas123@gmail.com",
+    "direccion": "cr 23 sur #54-14",
+    "documento": "1007108185"
+  }
+]

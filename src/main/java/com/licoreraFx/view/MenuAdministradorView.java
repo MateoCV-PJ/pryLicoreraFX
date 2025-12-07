@@ -19,7 +19,7 @@ import javafx.stage.Stage;
 public class MenuAdministradorView {
     public void mostrar(Stage stage) {
         Label title = new Label("Menú Administrador");
-        title.setStyle("-fx-font-size: 22px; -fx-font-weight: bold;");
+        // title.setStyle("-fx-font-size: 22px; -fx-font-weight: bold;");
 
         // Barra horizontal superior con botones de gestión y botón Cerrar sesión a la derecha
         Button bVendedoresTop = new Button("Vendedores");
@@ -32,7 +32,7 @@ public class MenuAdministradorView {
         Button bComprasTop = new Button("Compras");
 
         Button btnCerrarSesionTop = new Button("Cerrar sesión");
-        btnCerrarSesionTop.setStyle("-fx-background-color: transparent; -fx-underline: true; -fx-text-fill: #333;");
+        // btnCerrarSesionTop.setStyle("-fx-background-color: transparent; -fx-underline: true; -fx-text-fill: #333;");
 
         HBox topBar = new HBox(10);
         topBar.setPadding(new Insets(8, 12, 8, 12));
@@ -46,14 +46,13 @@ public class MenuAdministradorView {
 
         // -- Selección visual para botones superiores --
         Button[] topButtons = new Button[] { bVendedoresTop, bClientesTop, bProveedoresTop, bInventarioTop, bVentasTop, bComprasTop };
-        String defaultStyle = "-fx-background-color: transparent; -fx-text-fill: #333;";
-        String selectedStyle = "-fx-background-color: #E6E6E6; -fx-text-fill: #000; -fx-background-radius: 6;";
-        for (Button tb : topButtons) tb.setStyle(defaultStyle);
+        // Eliminadas las reglas CSS hardcodeadas; conservar la lógica para selección pero sin forzar estilos
         java.util.function.Consumer<Button> setSelectedTop = btn -> {
             for (Button tb : topButtons) {
-                if (tb == btn) tb.setStyle(selectedStyle);
-                else tb.setStyle(defaultStyle);
+                tb.setStyle("");
             }
+            // dejar el botón seleccionado sin estilo personalizado (hereda estilos por defecto)
+            btn.setStyle("");
         };
         // -- end selección visual --
 
@@ -62,7 +61,7 @@ public class MenuAdministradorView {
         contentArea.setPadding(new Insets(20));
         contentArea.setAlignment(Pos.TOP_CENTER);
         Label contentTitle = new Label("Seleccione una gestión");
-        contentTitle.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
+        // contentTitle.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
         Label contentPlaceholder = new Label("Aquí se mostrará la información y controles de la gestión seleccionada.");
         contentPlaceholder.setWrapText(true);
         contentArea.getChildren().addAll(contentTitle, contentPlaceholder);
@@ -122,64 +121,39 @@ public class MenuAdministradorView {
             area.getChildren().add(actions);
         };
 
-        // Handler que actualiza el contentArea cuando se selecciona una gestión
-        java.util.function.BiConsumer<String, Button> seleccionarGestion = (nombre, boton) -> {
-            gestionActual[0] = nombre;
-            // marcar botón seleccionado
-            setSelectedTop.accept(boton);
-            contentTitle.setText(nombre);
-            contentArea.getChildren().clear();
-            Label encabezado = new Label("Gestión: " + nombre);
-            encabezado.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
-            Label info = new Label("Aquí aparecerán los datos, filtros y tablas relacionados con '" + nombre + "'.");
-            info.setWrapText(true);
+        // Instanciar una vez las vistas para evitar reconstrucción repetida
+        final com.licoreraFx.view.VendedoresView vendedoresView = new com.licoreraFx.view.VendedoresView();
+        final com.licoreraFx.view.ClientesView clientesView = new com.licoreraFx.view.ClientesView();
+        final com.licoreraFx.view.ProveedoresView proveedoresView = new com.licoreraFx.view.ProveedoresView();
+        final com.licoreraFx.view.InventarioView inventarioView = new com.licoreraFx.view.InventarioView();
+        final com.licoreraFx.view.VentasView ventasView = new com.licoreraFx.view.VentasView();
+        final com.licoreraFx.view.ComprasView comprasView = new com.licoreraFx.view.ComprasView();
 
-            // Ejemplo de espacio para una tabla o formulario (placeholder)
-            Region mockRegion = new Region();
-            mockRegion.setPrefHeight(260);
-            mockRegion.setStyle("-fx-border-color: #DDD; -fx-border-style: solid; -fx-background-color: #FAFAFA;");
-
-            contentArea.getChildren().addAll(encabezado, info, mockRegion);
-            // Agregar barra de acciones específica para esta gestión
-            agregarBarraAcciones.accept(nombre, contentArea);
-        };
-
-        // Asociar botones superiores a la selección
+        // Asociar botones superiores a la selección — ahora usan instancias cacheadas
         bVendedoresTop.setOnAction(e -> {
             setSelectedTop.accept(bVendedoresTop);
-            // Mostrar la vista real de Vendedores (la propia vista incluye sus botones de acción)
-            com.licoreraFx.view.VendedoresView vv = new com.licoreraFx.view.VendedoresView();
-            vv.mostrar(contentArea);
+            vendedoresView.mostrar(contentArea);
         });
         bClientesTop.setOnAction(e -> {
             setSelectedTop.accept(bClientesTop);
-            // Mostrar la vista real de Clientes
-            com.licoreraFx.view.ClientesView cv = new com.licoreraFx.view.ClientesView();
-            cv.mostrar(contentArea);
+            // cargar en modo admin (mostrar eliminar)
+            clientesView.mostrar(contentArea, false);
         });
         bProveedoresTop.setOnAction(e -> {
             setSelectedTop.accept(bProveedoresTop);
-            // Mostrar la vista real de Proveedores
-            com.licoreraFx.view.ProveedoresView pv = new com.licoreraFx.view.ProveedoresView();
-            pv.mostrar(contentArea);
+            proveedoresView.mostrar(contentArea);
         });
         bInventarioTop.setOnAction(e -> {
             setSelectedTop.accept(bInventarioTop);
-            // Mostrar la vista real de Inventario
-            com.licoreraFx.view.InventarioView iv = new com.licoreraFx.view.InventarioView();
-            iv.mostrar(contentArea);
+            inventarioView.mostrar(contentArea);
         });
         bVentasTop.setOnAction(e -> {
             setSelectedTop.accept(bVentasTop);
-            // Mostrar la vista real de Ventas
-            com.licoreraFx.view.VentasView vv = new com.licoreraFx.view.VentasView();
-            vv.mostrar(contentArea);
+            ventasView.mostrar(contentArea);
         });
         bComprasTop.setOnAction(e -> {
             setSelectedTop.accept(bComprasTop);
-            // Mostrar la vista real de Compras
-            com.licoreraFx.view.ComprasView cv = new com.licoreraFx.view.ComprasView();
-            cv.mostrar(contentArea);
+            comprasView.mostrar(contentArea);
         });
 
 

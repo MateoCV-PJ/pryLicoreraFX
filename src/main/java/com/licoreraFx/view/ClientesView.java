@@ -1,12 +1,17 @@
 package com.licoreraFx.view;
 
 import com.licoreraFx.model.Cliente;
-import com.licoreraFx.util.JsonManager;
+import com.licoreraFx.repository.ClienteRepository;
+import com.licoreraFx.repository.ProductoRepository;
+import com.licoreraFx.model.DetalleVenta;
+import com.licoreraFx.model.Venta;
+import com.licoreraFx.service.VentaService;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
+import javafx.concurrent.Task;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -20,8 +25,6 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 
 import java.util.List;
-import java.util.ArrayList;
-import java.util.regex.Pattern;
 
 public class ClientesView {
 
@@ -29,7 +32,12 @@ public class ClientesView {
     private ObservableList<Cliente> masterData;
     private FilteredList<Cliente> filtered;
 
-    public Node createView() {
+    // Cache de vistas: una para admin (isVendor=false) y otra para vendedor (isVendor=true)
+    private Node cachedViewAdmin = null;
+    private Node cachedViewVendor = null;
+
+    // Nueva versión: crear vista parametrizada por rol (isVendor). Si isVendor==true, ocultar botón Eliminar.
+    public Node createView(boolean isVendor) {
         VBox root = new VBox(10);
         root.setPadding(new Insets(12));
         root.setAlignment(Pos.TOP_CENTER);
@@ -39,13 +47,13 @@ public class ClientesView {
 
         TextField tfSearch = new TextField();
         tfSearch.getStyleClass().add("search-field");
-        tfSearch.setPromptText("Buscar cliente por nombre, email, teléfono o documento...");
+        tfSearch.setPromptText("Buscar cliente por nombre, email, dirección o documento...");
         tfSearch.setMaxWidth(Double.MAX_VALUE);
         HBox searchBox = new HBox(8, tfSearch);
         HBox.setHgrow(tfSearch, Priority.ALWAYS);
 
-        List<Cliente> clientes = JsonManager.listarClientes();
-        masterData = FXCollections.observableArrayList(clientes);
+        // Inicializar lista vacía y configurar tabla inmediatamente (sin I/O en UI thread)
+        masterData = FXCollections.observableArrayList();
 
         table = new TableView<>();
         table.getStyleClass().add("clientes-table");
@@ -54,27 +62,33 @@ public class ClientesView {
         table.setMinHeight(200);
         table.setMaxHeight(Region.USE_PREF_SIZE);
 
-        TableColumn<Cliente, String> colId = new TableColumn<>("ID");
+        TableColumn<Cliente, String> colId = new TableColumn<>();
         colId.setCellValueFactory(cell -> new SimpleStringProperty(cell.getValue().getId()));
+        Label lblId = new Label("ID"); lblId.setStyle("-fx-font-weight: bold;"); colId.setGraphic(lblId); colId.setStyle("-fx-alignment: CENTER;");
 
-        TableColumn<Cliente, String> colNombre = new TableColumn<>("Nombre");
+        TableColumn<Cliente, String> colNombre = new TableColumn<>();
         colNombre.setCellValueFactory(cell -> new SimpleStringProperty(cell.getValue().getNombre()));
+        Label lblNombre = new Label("Nombre"); lblNombre.setStyle("-fx-font-weight: bold;"); colNombre.setGraphic(lblNombre); colNombre.setStyle("-fx-alignment: CENTER;");
 
-        TableColumn<Cliente, String> colEmail = new TableColumn<>("Email");
+        TableColumn<Cliente, String> colEmail = new TableColumn<>();
         colEmail.setCellValueFactory(cell -> new SimpleStringProperty(cell.getValue().getEmail()));
+        Label lblEmail = new Label("Email"); lblEmail.setStyle("-fx-font-weight: bold;"); colEmail.setGraphic(lblEmail); colEmail.setStyle("-fx-alignment: CENTER;");
 
-        TableColumn<Cliente, String> colTelefono = new TableColumn<>("Teléfono");
-        colTelefono.setCellValueFactory(cell -> new SimpleStringProperty(cell.getValue().getTelefono()));
+        TableColumn<Cliente, String> colDireccion = new TableColumn<>();
+        colDireccion.setCellValueFactory(cell -> new SimpleStringProperty(cell.getValue().getDireccion()));
+        Label lblDirec = new Label("Dirección"); lblDirec.setStyle("-fx-font-weight: bold;"); colDireccion.setGraphic(lblDirec); colDireccion.setStyle("-fx-alignment: CENTER;");
 
-        TableColumn<Cliente, String> colDocumento = new TableColumn<>("Documento");
+        TableColumn<Cliente, String> colDocumento = new TableColumn<>();
         colDocumento.setCellValueFactory(cell -> new SimpleStringProperty(cell.getValue().getDocumento()));
+        Label lblDoc = new Label("Documento"); lblDoc.setStyle("-fx-font-weight: bold;"); colDocumento.setGraphic(lblDoc); colDocumento.setStyle("-fx-alignment: CENTER;");
 
-        //noinspection unchecked
-        table.getColumns().addAll(colId, colNombre, colEmail, colTelefono, colDocumento);
+        final java.util.List<TableColumn<Cliente, ?>> _cols = java.util.Arrays.asList(colId, colNombre, colEmail, colDireccion, colDocumento);
+        table.getColumns().addAll(_cols);
 
         // Columna de acciones: botón 'Nueva Venta' por cliente
-        TableColumn<Cliente, Void> colAccion = new TableColumn<>("Acción");
+        TableColumn<Cliente, Void> colAccion = new TableColumn<>();
         colAccion.setPrefWidth(120);
+        Label lblAcc = new Label("Acción"); lblAcc.setStyle("-fx-font-weight: bold;"); colAccion.setGraphic(lblAcc); colAccion.setStyle("-fx-alignment: CENTER;");
         colAccion.setCellFactory(tc -> new TableCell<>() {
             private final Button btn = new Button("Nueva Venta");
             {
@@ -94,6 +108,21 @@ public class ClientesView {
 
         table.getColumns().add(colAccion);
 
+        // Protección: eliminar columnas sin encabezado ni graphic que puedan aparecer vacías (p. ej. filler column)
+        javafx.application.Platform.runLater(() -> {
+            try {
+                var cols = table.getColumns();
+                for (int i = cols.size() - 1; i >= 0; i--) {
+                    TableColumn<?,?> col = cols.get(i);
+                    String header = col.getText();
+                    boolean hasGraphic = col.getGraphic() != null;
+                    if ((header == null || header.trim().isEmpty()) && !hasGraphic) {
+                        cols.remove(i);
+                    }
+                }
+            } catch (Exception ignored) {}
+        });
+
         filtered = new FilteredList<>(masterData, p -> true);
         tfSearch.textProperty().addListener((obs, oldVal, newVal) -> {
             String q = newVal == null ? "" : newVal.trim().toLowerCase();
@@ -101,7 +130,7 @@ public class ClientesView {
                 if (q.isEmpty()) return true;
                 return (c.getNombre() != null && c.getNombre().toLowerCase().contains(q)) ||
                         (c.getEmail() != null && c.getEmail().toLowerCase().contains(q)) ||
-                        (c.getTelefono() != null && c.getTelefono().toLowerCase().contains(q)) ||
+                        (c.getDireccion() != null && c.getDireccion().toLowerCase().contains(q)) ||
                         (c.getDocumento() != null && c.getDocumento().toLowerCase().contains(q)) ||
                         (c.getId() != null && c.getId().toLowerCase().contains(q));
             });
@@ -120,42 +149,75 @@ public class ClientesView {
         btnEliminar.setOnAction(e -> {
             Cliente sel = table.getSelectionModel().getSelectedItem();
             if (sel == null) {
-                new Alert(Alert.AlertType.WARNING, "Selecciona un cliente para eliminar.", ButtonType.OK).showAndWait();
+                new Alert(Alert.AlertType.WARNING, "Selecciona un cliente para eliminar.").showAndWait();
                 return;
             }
             Alert confirm = new Alert(Alert.AlertType.CONFIRMATION, "¿Eliminar el cliente '" + sel.getNombre() + "'?", ButtonType.YES, ButtonType.NO);
             confirm.initModality(Modality.APPLICATION_MODAL);
             confirm.showAndWait().ifPresent(bt -> {
                 if (bt == ButtonType.YES) {
-                    boolean ok = JsonManager.eliminarCliente(sel.getId());
+                    boolean ok = ClienteRepository.eliminarCliente(sel.getId());
                     if (ok) {
                         cargarDatos();
-                        new Alert(Alert.AlertType.INFORMATION, "Cliente eliminado.", ButtonType.OK).showAndWait();
+                        new Alert(Alert.AlertType.INFORMATION, "Cliente eliminado.").showAndWait();
                     } else {
-                        new Alert(Alert.AlertType.ERROR, "No se pudo eliminar el cliente.", ButtonType.OK).showAndWait();
+                        new Alert(Alert.AlertType.ERROR, "No se pudo eliminar el cliente.").showAndWait();
                     }
                 }
             });
         });
 
-        HBox actions = new HBox(8, btnAnadir, btnModificar, btnEliminar);
+        HBox actions = new HBox(8, btnAnadir, btnModificar);
         actions.setAlignment(Pos.CENTER_RIGHT);
+        // Añadir botón Eliminar sólo si no es vendedor
+        if (!isVendor) actions.getChildren().add(btnEliminar);
 
         root.getChildren().addAll(titulo, searchBox, table, actions);
         VBox.setVgrow(table, Priority.ALWAYS);
 
+        // Iniciar carga asíncrona de datos
+        loadDataAsync();
+
         return root;
     }
 
+    // Compatibilidad: mostrar para admin (incluye eliminar)
     public void mostrar(VBox contentArea) {
-        Node view = createView();
+        mostrar(contentArea, false);
+    }
+
+    // Nueva API: mostrar con bandera isVendor
+    public void mostrar(VBox contentArea, boolean isVendor) {
+        Node view = isVendor ? cachedViewVendor : cachedViewAdmin;
+        if (view == null) {
+            view = createView(isVendor);
+            if (isVendor) cachedViewVendor = view; else cachedViewAdmin = view;
+        }
         contentArea.getChildren().clear();
         contentArea.getChildren().add(view);
     }
 
+    private void loadDataAsync() {
+        Task<List<Cliente>> task = new Task<>() {
+            @Override protected List<Cliente> call() {
+                return ClienteRepository.listarClientes();
+            }
+        };
+        task.setOnSucceeded(e -> {
+            List<Cliente> lista = task.getValue();
+            if (lista != null) masterData.setAll(lista);
+        });
+        task.setOnFailed(e -> {
+            // opcional: mostrar alerta o log
+            Throwable ex = task.getException();
+            if (ex != null) ex.printStackTrace(System.err);
+        });
+        new Thread(task).start();
+    }
+
     private void cargarDatos() {
-        List<Cliente> clientes = JsonManager.listarClientes();
-        masterData.setAll(clientes);
+        // Refrescar datos usando la misma carga asíncrona
+        loadDataAsync();
     }
 
     private void showAgregarClienteDialog() {
@@ -163,49 +225,36 @@ public class ClientesView {
         dialog.initModality(Modality.APPLICATION_MODAL);
         dialog.setTitle("Agregar cliente");
 
-        javafx.scene.layout.BorderPane root = new javafx.scene.layout.BorderPane();
+        VBox root = new VBox(8);
         root.setPadding(new Insets(12));
 
-        TextField tfNombre = new TextField();
-        tfNombre.getStyleClass().add("dialog-field");
-        tfNombre.setPromptText("Nombre completo");
-        TextField tfEmail = new TextField();
-        tfEmail.getStyleClass().add("dialog-field");
-        tfEmail.setPromptText("Email");
-        TextField tfTelefono = new TextField();
-        tfTelefono.getStyleClass().add("dialog-field");
-        tfTelefono.setPromptText("Teléfono");
-        TextField tfDocumento = new TextField();
-        tfDocumento.getStyleClass().add("dialog-field");
-        tfDocumento.setPromptText("Documento de identidad");
+        TextField tfNombre = new TextField(); tfNombre.setPromptText("Nombre completo");
+        TextField tfEmail = new TextField(); tfEmail.setPromptText("Email");
+        TextField tfDireccion = new TextField(); tfDireccion.setPromptText("Dirección");
+        TextField tfDocumento = new TextField(); tfDocumento.setPromptText("Documento de identidad");
 
         Button btnSave = new Button("Guardar");
-        btnSave.getStyleClass().add("dialog-button");
         Button btnCancel = new Button("Cancelar");
-        btnCancel.getStyleClass().addAll("dialog-button", "secondary");
-
-        Label lblError = new Label();
-        lblError.getStyleClass().add("dialog-error");
+        Label lblError = new Label(); lblError.getStyleClass().add("dialog-error");
 
         btnSave.setOnAction(e -> {
             String nombre = tfNombre.getText() != null ? tfNombre.getText().trim() : "";
             String email = tfEmail.getText() != null ? tfEmail.getText().trim() : "";
-            String telefono = tfTelefono.getText() != null ? tfTelefono.getText().trim() : "";
+            String direccion = tfDireccion.getText() != null ? tfDireccion.getText().trim() : "";
             String documento = tfDocumento.getText() != null ? tfDocumento.getText().trim() : "";
 
             if (nombre.isEmpty()) { lblError.setText("Nombre es obligatorio."); return; }
             if (email.isEmpty()) { lblError.setText("Email es obligatorio."); return; }
-            if (isInvalidEmail(email)) { lblError.setText("Email inválido."); return; }
-            if (telefono.isEmpty()) { lblError.setText("Teléfono es obligatorio."); return; }
-            if (isInvalidTelefono(telefono)) { lblError.setText("Teléfono inválido. Use dígitos, espacios, guiones o +."); return; }
+            if (direccion.isEmpty()) { lblError.setText("Dirección es obligatoria."); return; }
             if (documento.isEmpty()) { lblError.setText("Documento es obligatorio."); return; }
 
-            Cliente nuevo = new Cliente(null, nombre, email, telefono, documento);
-            boolean ok = JsonManager.agregarCliente(nuevo);
+            // Pasamos la dirección al constructor (se conservará en ambos campos para compatibilidad)
+            Cliente nuevo = new Cliente(null, nombre, email, direccion, documento);
+            boolean ok = ClienteRepository.agregarCliente(nuevo);
             if (ok) {
                 cargarDatos();
                 dialog.close();
-                new Alert(Alert.AlertType.INFORMATION, "Cliente agregado.", ButtonType.OK).showAndWait();
+                new Alert(Alert.AlertType.INFORMATION, "Cliente agregado.").showAndWait();
             } else {
                 lblError.setText("No se pudo agregar el cliente (id duplicado o error de escritura).");
             }
@@ -220,26 +269,14 @@ public class ClientesView {
         formBox.getChildren().addAll(
                 new Label("Nombre:"), tfNombre,
                 new Label("Email:"), tfEmail,
-                new Label("Teléfono:"), tfTelefono,
+                new Label("Dirección:"), tfDireccion,
                 new Label("Documento:"), tfDocumento,
                 lblError
         );
 
-        ScrollPane sp = new ScrollPane(formBox);
-        sp.setFitToWidth(true);
-        sp.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        sp.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
-        sp.setPrefViewportHeight(220);
-
-        root.setCenter(sp);
-        HBox bottomBox = new HBox();
-        bottomBox.setPadding(new Insets(8, 0, 0, 0));
-        bottomBox.getChildren().add(btns);
-        bottomBox.setAlignment(Pos.CENTER_RIGHT);
-        root.setBottom(bottomBox);
-
-        Scene scene = new Scene(root, 480, 320);
-        dialog.setScene(scene);
+        root.getChildren().addAll(formBox, btns);
+        Scene scene1 = new Scene(root, 480, 320);
+        dialog.setScene(scene1);
         dialog.setResizable(true);
         dialog.setMinWidth(420);
         dialog.setMinHeight(300);
@@ -247,71 +284,59 @@ public class ClientesView {
     }
 
     private void showModificarClienteDialog() {
-        Cliente sel = table.getSelectionModel().getSelectedItem();
-        if (sel == null) { new Alert(Alert.AlertType.WARNING, "Selecciona un cliente para modificar.", ButtonType.OK).showAndWait(); return; }
+        List<Cliente> clientes = ClienteRepository.listarClientes();
+         if (clientes.isEmpty()) { new Alert(Alert.AlertType.WARNING, "Selecciona un cliente para modificar.").showAndWait(); return; }
+         Stage dialog = new Stage();
+         dialog.initModality(Modality.APPLICATION_MODAL);
+         dialog.setTitle("Modificar cliente");
 
-        Stage dialog = new Stage();
-        dialog.initModality(Modality.APPLICATION_MODAL);
-        dialog.setTitle("Modificar cliente");
+         VBox root = new VBox(8);
+         root.setPadding(new Insets(12));
 
-        javafx.scene.layout.BorderPane root = new javafx.scene.layout.BorderPane();
-        root.setPadding(new Insets(12));
+         ComboBox<Cliente> cb = new ComboBox<>(); cb.getItems().addAll(clientes);
+         cb.setConverter(new javafx.util.StringConverter<>() {
+             @Override public String toString(Cliente c) { return c == null ? "" : (c.getNombre() != null ? c.getNombre() : c.getId()); }
+             @Override public Cliente fromString(String string) { return null; }
+         });
 
-        TextField tfNombre = new TextField(sel.getNombre()); tfNombre.getStyleClass().add("dialog-field");
-        TextField tfEmail = new TextField(sel.getEmail()); tfEmail.getStyleClass().add("dialog-field");
-        TextField tfTelefono = new TextField(sel.getTelefono()); tfTelefono.getStyleClass().add("dialog-field");
-        TextField tfDocumento = new TextField(sel.getDocumento()); tfDocumento.getStyleClass().add("dialog-field");
+         TextField tfNombre = new TextField(); TextField tfEmail = new TextField(); TextField tfDireccion = new TextField(); TextField tfDocumento = new TextField();
+         Label lblError = new Label(); lblError.getStyleClass().add("dialog-error");
 
-        Button btnSave = new Button("Guardar"); btnSave.getStyleClass().add("dialog-button");
-        Button btnCancel = new Button("Cancelar"); btnCancel.getStyleClass().addAll("dialog-button", "secondary");
+         cb.setOnAction(ev -> {
+             Cliente sel = cb.getValue();
+             if (sel != null) { tfNombre.setText(sel.getNombre()); tfEmail.setText(sel.getEmail()); tfDireccion.setText(sel.getDireccion()); tfDocumento.setText(sel.getDocumento()); }
+         });
 
-        Label lblError = new Label(); lblError.getStyleClass().add("dialog-error");
+         Button btnSave = new Button("Guardar"); Button btnCancel = new Button("Cancelar");
+         btnSave.setOnAction(e -> {
+             Cliente sel = cb.getValue(); if (sel == null) { lblError.setText("Selecciona un cliente."); return; }
+             String nombre = tfNombre.getText() != null ? tfNombre.getText().trim() : "";
+             String email = tfEmail.getText() != null ? tfEmail.getText().trim() : "";
+             String direccion = tfDireccion.getText() != null ? tfDireccion.getText().trim() : "";
+             String documento = tfDocumento.getText() != null ? tfDocumento.getText().trim() : "";
+             if (nombre.isEmpty()) { lblError.setText("Nombre es obligatorio."); return; }
+             if (email.isEmpty()) { lblError.setText("Email es obligatorio."); return; }
+             if (direccion.isEmpty()) { lblError.setText("Dirección es obligatoria."); return; }
+             if (documento.isEmpty()) { lblError.setText("Documento es obligatorio."); return; }
 
-        btnSave.setOnAction(e -> {
-            String nombre = tfNombre.getText() != null ? tfNombre.getText().trim() : "";
-            String email = tfEmail.getText() != null ? tfEmail.getText().trim() : "";
-            String telefono = tfTelefono.getText() != null ? tfTelefono.getText().trim() : "";
-            String documento = tfDocumento.getText() != null ? tfDocumento.getText().trim() : "";
+             Cliente actualizado = new Cliente(sel.getId(), nombre, email, direccion, documento);
+            boolean ok = ClienteRepository.actualizarCliente(sel.getId(), actualizado);
+             if (ok) { cargarDatos(); dialog.close(); new Alert(Alert.AlertType.INFORMATION, "Cliente actualizado.").showAndWait(); }
+             else { lblError.setText("No se pudo actualizar el cliente (id puede existir o error de escritura). "); }
+         });
+         btnCancel.setOnAction(ev -> dialog.close());
 
-            if (nombre.isEmpty()) { lblError.setText("Nombre es obligatorio."); return; }
-            if (email.isEmpty()) { lblError.setText("Email es obligatorio."); return; }
-            if (isInvalidEmail(email)) { lblError.setText("Email inválido."); return; }
-            if (telefono.isEmpty()) { lblError.setText("Teléfono es obligatorio."); return; }
-            if (isInvalidTelefono(telefono)) { lblError.setText("Teléfono inválido. Use dígitos, espacios, guiones o +."); return; }
-            if (documento.isEmpty()) { lblError.setText("Documento es obligatorio."); return; }
+         HBox btns = new HBox(8, btnSave, btnCancel); btns.setAlignment(Pos.CENTER_RIGHT);
+         VBox formBox = new VBox(8);
+         formBox.getChildren().addAll(new Label("Selecciona cliente:"), cb, new Label("Nombre:"), tfNombre, new Label("Email:"), tfEmail, new Label("Dirección:"), tfDireccion, new Label("Documento:"), tfDocumento, lblError);
 
-            Cliente actualizado = new Cliente(sel.getId(), nombre, email, telefono, documento);
-            boolean ok = JsonManager.actualizarCliente(sel.getId(), actualizado);
-            if (ok) {
-                cargarDatos(); dialog.close(); new Alert(Alert.AlertType.INFORMATION, "Cliente actualizado.", ButtonType.OK).showAndWait();
-            } else {
-                lblError.setText("No se pudo actualizar el cliente (id puede existir o error de escritura).");
-            }
-        });
-
-        btnCancel.setOnAction(ev -> dialog.close());
-
-        HBox btns = new HBox(8, btnSave, btnCancel); btns.setAlignment(Pos.CENTER_RIGHT);
-
-        VBox formBox = new VBox(8);
-        formBox.getChildren().addAll(
-                new Label("Nombre:"), tfNombre,
-                new Label("Email:"), tfEmail,
-                new Label("Teléfono:"), tfTelefono,
-                new Label("Documento:"), tfDocumento,
-                lblError
-        );
-
-        ScrollPane sp = new ScrollPane(formBox); sp.setFitToWidth(true);
-        sp.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER); sp.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
-        sp.setPrefViewportHeight(260);
-
-        root.setCenter(sp);
-        HBox bottomBox = new HBox(); bottomBox.setPadding(new Insets(8, 0, 0, 0)); bottomBox.getChildren().add(btns); bottomBox.setAlignment(Pos.CENTER_RIGHT);
-        root.setBottom(bottomBox);
-
-        Scene scene = new Scene(root, 480, 360);
-        dialog.setScene(scene); dialog.setResizable(true); dialog.setMinWidth(420); dialog.setMinHeight(300); dialog.showAndWait();
+         root.getChildren().addAll(formBox, btns);
+        Scene scene2 = new Scene(root, 480, 360);
+         dialog.setScene(scene2);
+         dialog.setResizable(true);
+         dialog.setMinWidth(420);
+         dialog.setMinHeight(300);
+         dialog.showAndWait();
     }
 
     private void showNuevaVentaDialog(Cliente cliente) {
@@ -340,22 +365,25 @@ public class ClientesView {
         tablaProductos.setPrefHeight(200);
         ObservableList<ProductoVenta> productosVenta = FXCollections.observableArrayList();
         tablaProductos.setItems(productosVenta);
+        // limpiar columnas previas y forzar política de redimensionado
+        tablaProductos.getColumns().clear();
+        tablaProductos.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
 
         TableColumn<ProductoVenta, String> colNombreProd = new TableColumn<>("Producto");
         colNombreProd.setCellValueFactory(cell -> new SimpleStringProperty(cell.getValue().getNombre()));
-        colNombreProd.setPrefWidth(200);
+        colNombreProd.setStyle("-fx-alignment: CENTER;"); colNombreProd.setPrefWidth(220);
 
         TableColumn<ProductoVenta, String> colPrecio = new TableColumn<>("Precio");
         colPrecio.setCellValueFactory(cell -> new SimpleStringProperty("$" + cell.getValue().getPrecio()));
-        colPrecio.setPrefWidth(100);
+        colPrecio.setStyle("-fx-alignment: CENTER;"); colPrecio.setPrefWidth(90);
 
         TableColumn<ProductoVenta, String> colCantidad = new TableColumn<>("Cantidad");
         colCantidad.setCellValueFactory(cell -> new SimpleStringProperty(String.valueOf(cell.getValue().getCantidad())));
-        colCantidad.setPrefWidth(100);
+        colCantidad.setStyle("-fx-alignment: CENTER;"); colCantidad.setPrefWidth(90);
 
         TableColumn<ProductoVenta, String> colSubtotal = new TableColumn<>("Subtotal");
         colSubtotal.setCellValueFactory(cell -> new SimpleStringProperty("$" + (cell.getValue().getPrecio() * cell.getValue().getCantidad())));
-        colSubtotal.setPrefWidth(100);
+        colSubtotal.setStyle("-fx-alignment: CENTER;"); colSubtotal.setPrefWidth(110);
 
         TableColumn<ProductoVenta, Void> colEliminar = new TableColumn<>("Acción");
         colEliminar.setCellFactory(tc -> new TableCell<>() {
@@ -371,13 +399,47 @@ public class ClientesView {
             @Override
             protected void updateItem(Void item, boolean empty) {
                 super.updateItem(item, empty);
-                setGraphic(empty ? null : btnEliminar);
+                if (empty) {
+                    setGraphic(null);
+                } else {
+                    HBox box = new HBox(btnEliminar);
+                    box.setAlignment(Pos.CENTER);
+                    setGraphic(box);
+                }
             }
         });
         colEliminar.setPrefWidth(100);
 
-        //noinspection unchecked
         tablaProductos.getColumns().addAll(colNombreProd, colPrecio, colCantidad, colSubtotal, colEliminar);
+
+        // Política personalizada: calcular anchos de columnas según ratios y asignarlos cada vez que la tabla redimensione
+        double[] prefsTab = new double[] {220, 90, 90, 110, 100};
+        final double sumPrefsTab = java.util.Arrays.stream(prefsTab).sum();
+        tablaProductos.setColumnResizePolicy(param -> {
+            double totalW = tablaProductos.getWidth() - 2; // margen
+            if (totalW <= 0) return true;
+            for (int i = 0; i < tablaProductos.getColumns().size() && i < prefsTab.length; i++) {
+                TableColumn<?,?> col = tablaProductos.getColumns().get(i);
+                double w = prefsTab[i] / sumPrefsTab * totalW;
+                col.setPrefWidth(Math.max(40, w));
+            }
+            return true;
+        });
+
+        // Protección: eliminar cualquier columna que no tenga encabezado (texto) ni graphic tras el layout
+        javafx.application.Platform.runLater(() -> {
+            try {
+                var cols = tablaProductos.getColumns();
+                for (int i = cols.size() - 1; i >= 0; i--) {
+                    TableColumn<?,?> col = cols.get(i);
+                    String header = col.getText();
+                    boolean hasGraphic = col.getGraphic() != null;
+                    if ((header == null || header.trim().isEmpty()) && !hasGraphic) {
+                        cols.remove(i);
+                    }
+                }
+            } catch (Exception ignored) {}
+        });
 
         // Controles para agregar productos
         HBox addProductoBox = new HBox(10);
@@ -386,9 +448,9 @@ public class ClientesView {
         ComboBox<com.licoreraFx.model.Producto> cbProducto = new ComboBox<>();
         cbProducto.setPromptText("Seleccionar producto");
         cbProducto.setPrefWidth(250);
-        List<com.licoreraFx.model.Producto> productos = JsonManager.listarProductos();
+        List<com.licoreraFx.model.Producto> productos = ProductoRepository.listarProductos();
         cbProducto.getItems().addAll(productos);
-        cbProducto.setConverter(new javafx.util.StringConverter<com.licoreraFx.model.Producto>() {
+        cbProducto.setConverter(new javafx.util.StringConverter<>() {
             @Override
             public String toString(com.licoreraFx.model.Producto p) {
                 return p == null ? "" : p.getNombre() + " - Stock: " + p.getStock();
@@ -405,6 +467,8 @@ public class ClientesView {
         spCantidad.setEditable(true);
 
         Button btnAgregarProducto = new Button("Agregar");
+        // Label total declarado antes del handler para poder actualizarlo al cambiar cantidades
+        Label lblTotal = new Label("Total: $0.00");
         btnAgregarProducto.setOnAction(e -> {
             com.licoreraFx.model.Producto productoSeleccionado = cbProducto.getValue();
             int cantidad = spCantidad.getValue();
@@ -414,164 +478,99 @@ public class ClientesView {
                 return;
             }
 
-            if (cantidad > productoSeleccionado.getStock()) {
-                new Alert(Alert.AlertType.WARNING, "La cantidad supera el stock disponible (" + productoSeleccionado.getStock() + ").", ButtonType.OK).showAndWait();
+            int stock = productoSeleccionado.getStock();
+            if (stock == 0) {
+                new Alert(Alert.AlertType.WARNING, "Producto Agotado", ButtonType.OK).showAndWait();
+                return;
+            }
+            if (cantidad > stock) {
+                new Alert(Alert.AlertType.WARNING, "La cantidad supera el stock disponible (" + stock + ").", ButtonType.OK).showAndWait();
                 return;
             }
 
-            // Verificar si el producto ya está en la lista
-            boolean existe = false;
+            // Buscar si el producto ya está en la lista
+            ProductoVenta existente = null;
             for (ProductoVenta pv : productosVenta) {
-                if (pv.getId().equals(productoSeleccionado.getId())) {
-                    pv.setCantidad(pv.getCantidad() + cantidad);
-                    existe = true;
-                    break;
+                if (pv.getId().equals(productoSeleccionado.getId())) { existente = pv; break; }
+            }
+
+            if (existente != null) {
+                // Aumentar la cantidad existente
+                existente.setCantidad(existente.getCantidad() + cantidad);
+                // Refrescar la tabla para que muestre el nuevo subtotal
+                tablaProductos.refresh();
+            } else {
+                productosVenta.add(new ProductoVenta(productoSeleccionado.getId(), productoSeleccionado.getNombre(), productoSeleccionado.getPrecio(), cantidad));
+            }
+
+            // Recalcular total y actualizar label inmediatamente (listener no se dispara al cambiar cantidad)
+            double totalNow = 0;
+            for (ProductoVenta pv2 : productosVenta) totalNow += pv2.getPrecio() * pv2.getCantidad();
+            lblTotal.setText("Total: $" + String.format("%.2f", totalNow));
+        });
+
+        HBox addBox = new HBox(8, cbProducto, spCantidad, btnAgregarProducto);
+        addBox.setAlignment(Pos.CENTER_LEFT);
+
+        root.getChildren().addAll(info, lblNombre, lblDocumento, sep1, lblProductos, addBox, tablaProductos);
+
+        // Total y botones para crear la venta
+        productosVenta.addListener((javafx.collections.ListChangeListener<ProductoVenta>) c -> {
+            double t = 0;
+            for (ProductoVenta pv : productosVenta) t += pv.getPrecio() * pv.getCantidad();
+            lblTotal.setText("Total: $" + String.format("%.2f", t));
+        });
+
+        Button btnCrearVenta = new Button("Agregar Venta");
+        Button btnCerrar = new Button("Cerrar");
+        HBox btnsVenta = new HBox(8, btnCrearVenta, btnCerrar);
+        btnsVenta.setAlignment(Pos.CENTER_RIGHT);
+
+        btnCrearVenta.setOnAction(e -> {
+            // Construir detalles de la venta a partir de productosVenta
+            java.util.List<DetalleVenta> detalles = new java.util.ArrayList<>();
+            double total = 0;
+            for (ProductoVenta pv : productosVenta) {
+                if (pv.getCantidad() > 0) {
+                    double subtotal = pv.getPrecio() * pv.getCantidad();
+                    detalles.add(new DetalleVenta(pv.getId(), pv.getNombre(), pv.getCantidad(), pv.getPrecio(), subtotal));
+                    total += subtotal;
                 }
             }
-
-            if (!existe) {
-                ProductoVenta pv = new ProductoVenta(
-                        productoSeleccionado.getId(),
-                        productoSeleccionado.getNombre(),
-                        productoSeleccionado.getPrecio(),
-                        cantidad
-                );
-                productosVenta.add(pv);
-            }
-
-            tablaProductos.refresh();
-            cbProducto.setValue(null);
-            spCantidad.getValueFactory().setValue(1);
-        });
-
-        addProductoBox.getChildren().addAll(new Label("Producto:"), cbProducto, new Label("Cantidad:"), spCantidad, btnAgregarProducto);
-
-        // Total
-        Label lblTotal = new Label("Total: $0.00");
-        lblTotal.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
-
-        // Actualizar total cuando cambie la tabla
-        productosVenta.addListener((javafx.collections.ListChangeListener<ProductoVenta>) c -> {
-            double total = productosVenta.stream().mapToDouble(pv -> pv.getPrecio() * pv.getCantidad()).sum();
-            lblTotal.setText(String.format("Total: $%.2f", total));
-        });
-
-        Separator sep2 = new Separator();
-
-        // Botones de acción
-        Button btnCrear = new Button("Crear Venta");
-        btnCrear.getStyleClass().add("dialog-button");
-        Button btnCancelar = new Button("Cancelar");
-        btnCancelar.getStyleClass().addAll("dialog-button", "secondary");
-        HBox btns = new HBox(8, btnCrear, btnCancelar);
-        btns.setAlignment(Pos.CENTER_RIGHT);
-
-        btnCrear.setOnAction(e -> {
-            if (productosVenta.isEmpty()) {
-                new Alert(Alert.AlertType.WARNING, "Agrega al menos un producto a la venta.", ButtonType.OK).showAndWait();
+            if (detalles.isEmpty()) {
+                new Alert(Alert.AlertType.WARNING, "Selecciona al menos un producto con cantidad mayor a 0.", ButtonType.OK).showAndWait();
                 return;
             }
 
-            // Crear la lista de detalles de venta
-            List<com.licoreraFx.model.DetalleVenta> detalles = new ArrayList<>();
-            for (ProductoVenta pv : productosVenta) {
-                double subtotal = pv.getPrecio() * pv.getCantidad();
-                com.licoreraFx.model.DetalleVenta detalle = new com.licoreraFx.model.DetalleVenta(
-                        pv.getId(),
-                        pv.getNombre(),
-                        pv.getCantidad(),
-                        pv.getPrecio(),
-                        subtotal
-                );
-                detalles.add(detalle);
-            }
-
-            // Calcular el total
-            double total = detalles.stream().mapToDouble(com.licoreraFx.model.DetalleVenta::getSubtotal).sum();
-
-            // Crear la venta
-            com.licoreraFx.model.Venta venta = new com.licoreraFx.model.Venta(
-                    null,
-                    cliente.getId(),
-                    cliente.getNombre(),
-                    detalles,
-                    total
-            );
-
-            // Guardar la venta
-            boolean ok = JsonManager.agregarVenta(venta);
+            Venta venta = new Venta(null, cliente.getId(), cliente.getNombre(), detalles, total);
+            boolean ok = VentaService.crearVenta(venta);
             if (ok) {
-                new Alert(Alert.AlertType.INFORMATION, "Venta creada exitosamente para: " + cliente.getNombre() + "\nTotal: $" + String.format("%.2f", total)).showAndWait();
+                new Alert(Alert.AlertType.INFORMATION, "Venta registrada correctamente.\nTotal: $" + String.format("%.2f", total), ButtonType.OK).showAndWait();
                 dialog.close();
             } else {
-                new Alert(Alert.AlertType.ERROR, "Error al guardar la venta. Revisa la consola para más detalles.").showAndWait();
+                new Alert(Alert.AlertType.ERROR, "No se pudo registrar la venta (stock insuficiente o error).", ButtonType.OK).showAndWait();
             }
         });
 
-        btnCancelar.setOnAction(ev -> dialog.close());
+        btnCerrar.setOnAction(ev -> dialog.close());
 
-        root.getChildren().addAll(info, lblNombre, lblDocumento, sep1, lblProductos, addProductoBox, tablaProductos, sep2, lblTotal, btns);
+        VBox bottomBox = new VBox(8, lblTotal, btnsVenta);
+        bottomBox.setPadding(new Insets(8,0,0,0));
+        root.getChildren().addAll(bottomBox);
 
-        ScrollPane scrollPane = new ScrollPane(root);
-        scrollPane.setFitToWidth(true);
-        scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-
-        Scene scene = new Scene(scrollPane, 700, 600);
-        dialog.setScene(scene);
-        dialog.setResizable(true);
-        dialog.showAndWait();
+        Scene scene = new Scene(root, 700, 520);
+         dialog.setScene(scene);
+         dialog.showAndWait();
     }
 
-    // Clase interna para representar un producto en la venta
+    // Clases auxiliares internas
     private static class ProductoVenta {
-        private String id;
-        private String nombre;
-        private double precio;
-        private int cantidad;
-
-        public ProductoVenta(String id, String nombre, double precio, int cantidad) {
-            this.id = id;
-            this.nombre = nombre;
-            this.precio = precio;
-            this.cantidad = cantidad;
-        }
-
-        public String getId() {
-            return id;
-        }
-
-        public String getNombre() {
-            return nombre;
-        }
-
-        public double getPrecio() {
-            return precio;
-        }
-
-        public int getCantidad() {
-            return cantidad;
-        }
-
-        public void setCantidad(int cantidad) {
-            this.cantidad = cantidad;
-        }
-    }
-
-    // Validadores
-    private boolean isInvalidEmail(String email) {
-        if (email == null) return true;
-        String v = email.trim();
-        if (v.isEmpty()) return true;
-        String pattern = "^[\\w.%+\\-]+@[A-Za-z0-9.\\-]+\\.[A-Za-z]{2,6}$";
-        return !Pattern.compile(pattern).matcher(v).matches();
-    }
-
-    private boolean isInvalidTelefono(String telefono) {
-        if (telefono == null) return true;
-        String v = telefono.trim();
-        if (v.isEmpty()) return true;
-        // Permite dígitos, espacios, guiones y el símbolo '+'
-        String pattern = "^[\\d\\s\\-()+]+$";
-        return !Pattern.compile(pattern).matcher(v).matches();
+        private final String id; private final String nombre; private final double precio; private int cantidad;
+        ProductoVenta(String id, String nombre, double precio, int cantidad) { this.id = id; this.nombre = nombre; this.precio = precio; this.cantidad = cantidad; }
+        String getId() { return id; }
+        String getNombre() { return nombre; }
+        double getPrecio() { return precio; }
+        int getCantidad() { return cantidad; }
+        void setCantidad(int cantidad) { this.cantidad = cantidad; }
     }
 }

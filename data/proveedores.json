@@ -1,1 +1,9 @@
-[{"id":"1","nombreEmpresa":"Helados Tony","email":"tony@heledos.com","telefono":"2330440355","rut":"20934"}]
+[
+  {
+    "id": "1",
+    "nombreEmpresa": "Helados Tony",
+    "email": "tony@tony.com",
+    "direccion": "cr 23-13 sur 13-45",
+    "rut": "12332323"
+  }
+]

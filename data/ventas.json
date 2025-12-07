@@ -1,46 +1,17 @@
 [
   {
-    "id": "1",
-    "clienteId": "1",
-    "nombreCliente": "Mateo Cv",
-    "detalles": [
-      {
-        "productoId": "1",
-        "nombreProducto": "Cerveza Pilsen x6",
-        "cantidad": 2,
-        "precioUnitario": 19900.0,
-        "subtotal": 39800.0
-      },
-      {
-        "productoId": "2",
-        "nombreProducto": "Aguardiente Antioqueño Rojo 1L",
-        "cantidad": 3,
-        "precioUnitario": 98000.0,
-        "subtotal": 294000.0
-      }
-    ],
-    "total": 333800.0
-  },
-  {
     "id": "2",
     "clienteId": "1",
-    "nombreCliente": "Mateo Cv",
+    "nombreCliente": "Sebastian Varela Garcia",
     "detalles": [
       {
-        "productoId": "1",
-        "nombreProducto": "Cerveza Pilsen x6",
-        "cantidad": 8,
-        "precioUnitario": 19900.0,
-        "subtotal": 159200.0
-      },
-      {
-        "productoId": "2",
-        "nombreProducto": "Aguardiente Antioqueño Rojo 1L",
-        "cantidad": 2,
-        "precioUnitario": 98000.0,
-        "subtotal": 196000.0
+        "productoId": "4",
+        "nombreProducto": "Club Colombia x6",
+        "cantidad": 3,
+        "precioUnitario": 15800.0,
+        "subtotal": 47400.0
       }
     ],
-    "total": 355200.0
+    "total": 47400.0
   }
 ]

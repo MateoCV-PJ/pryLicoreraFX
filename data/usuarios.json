@@ -4,7 +4,15 @@
     "password": "admin123",
     "rol": "ADMIN",
     "nombre": "Administrador",
-    "email": "admin@example.com",
-    "telefono": ""
+    "email": "admin@example.com"
+  },
+  {
+    "id": "1",
+    "username": "vendedor",
+    "password": "vend123",
+    "rol": "VENDEDOR",
+    "nombre": "Mateo Cordoba Vaco",
+    "email": "mateo@mateo.com",
+    "documento": "1007108185"
   }
 ]

@@ -4,66 +4,33 @@ public class Cliente {
     private String id;
     private String nombre;
     private String email;
-    private String telefono;
-    private String documento; // nuevo campo
+    private String direccion; // dirección del cliente
+    private String documento;
 
-    public Cliente() {
-    }
+    public Cliente() {}
 
-    public Cliente(String id, String nombre, String email, String telefono) {
+    public Cliente(String id, String nombre, String email, String direccion, String documento) {
         this.id = id;
         this.nombre = nombre;
         this.email = email;
-        this.telefono = telefono;
-    }
-
-    public Cliente(String id, String nombre, String email, String telefono, String documento) {
-        this.id = id;
-        this.nombre = nombre;
-        this.email = email;
-        this.telefono = telefono;
+        this.direccion = direccion;
         this.documento = documento;
     }
 
-    public String getId() {
-        return id;
-    }
+    public String getId() { return id; }
+    public void setId(String id) { this.id = id; }
 
-    public void setId(String id) {
-        this.id = id;
-    }
+    public String getNombre() { return nombre; }
+    public void setNombre(String nombre) { this.nombre = nombre; }
 
-    public String getNombre() {
-        return nombre;
-    }
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
 
-    public void setNombre(String nombre) {
-        this.nombre = nombre;
-    }
+    public String getDireccion() { return direccion; }
+    public void setDireccion(String direccion) { this.direccion = direccion; }
 
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public String getTelefono() {
-        return telefono;
-    }
-
-    public void setTelefono(String telefono) {
-        this.telefono = telefono;
-    }
-
-    public String getDocumento() {
-        return documento;
-    }
-
-    public void setDocumento(String documento) {
-        this.documento = documento;
-    }
+    public String getDocumento() { return documento; }
+    public void setDocumento(String documento) { this.documento = documento; }
 
     @Override
     public String toString() {
@@ -71,7 +38,7 @@ public class Cliente {
                 "id='" + id + '\'' +
                 ", nombre='" + nombre + '\'' +
                 ", email='" + email + '\'' +
-                ", telefono='" + telefono + '\'' +
+                ", direccion='" + direccion + '\'' +
                 ", documento='" + documento + '\'' +
                 '}';
     }

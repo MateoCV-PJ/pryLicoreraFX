@@ -7,7 +7,6 @@ public class Usuario {
     private String rol;
     private String nombre;
     private String email;
-    private String telefono;
     private String documento; // nuevo campo
 
     public Usuario() {
@@ -19,13 +18,12 @@ public class Usuario {
         this.rol = rol;
     }
 
-    public Usuario(String username, String password, String rol, String nombre, String email, String telefono) {
+    public Usuario(String username, String password, String rol, String nombre, String email) {
         this.username = username;
         this.password = password;
         this.rol = rol;
         this.nombre = nombre;
         this.email = email;
-        this.telefono = telefono;
     }
 
     public String getId() {
@@ -76,14 +74,6 @@ public class Usuario {
         this.email = email;
     }
 
-    public String getTelefono() {
-        return telefono;
-    }
-
-    public void setTelefono(String telefono) {
-        this.telefono = telefono;
-    }
-
     public String getDocumento() {
         return documento;
     }
@@ -100,7 +90,6 @@ public class Usuario {
                 ", rol='" + rol + '\'' +
                 ", nombre='" + nombre + '\'' +
                 ", email='" + email + '\'' +
-                ", telefono='" + telefono + '\'' +
                 ", documento='" + documento + '\'' +
                 '}';
     }

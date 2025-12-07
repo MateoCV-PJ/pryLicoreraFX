@@ -1,0 +1,18 @@
+[
+  {
+    "id": "2",
+    "proveedorId": "1",
+    "numeroFactura": "1320",
+    "metodoPago": "Efectivo",
+    "total": 1100000.0,
+    "notas": "",
+    "items": [
+      {
+        "productoId": "2",
+        "nombreProducto": "Aguardiente Antioqueño Rojo 1L",
+        "cantidad": 11,
+        "precio": 100000.0
+      }
+    ]
+  }
+]

@@ -16,6 +16,7 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
@@ -30,6 +31,11 @@ public class InventarioView {
     private FilteredList<Producto> filteredData;
 
     public Node createView() {
+        return createView(false);
+    }
+
+    // Nueva versión: permitir modo vendedor (isVendor==true oculta acciones)
+    public Node createView(boolean isVendor) {
         VBox root = new VBox(10);
         root.setPadding(new Insets(12));
         root.setAlignment(Pos.TOP_CENTER);
@@ -60,6 +66,7 @@ public class InventarioView {
             });
         });
 
+        // ListView con celdas compactas (izquierda)
         listView = new ListView<>(filteredData);
         listView.setCellFactory(param -> new ListCell<>() {
             private ImageView imageView = new ImageView();
@@ -67,12 +74,16 @@ public class InventarioView {
             private Label lblDescripcion = new Label();
             private Label lblPrecio = new Label();
             private Label lblStock = new Label();
+            private Label lblAgotado = new Label("Producto Agotado");
             private HBox hbox = new HBox(10);
 
             {
                 imageView.setFitHeight(80);
                 imageView.setFitWidth(80);
-                VBox vbox = new VBox(5, lblNombre, lblDescripcion, lblPrecio, lblStock);
+                lblAgotado.setStyle("-fx-text-fill: red; -fx-font-weight: bold;");
+                lblAgotado.setVisible(false);
+                HBox stockBox = new HBox(6, lblStock, lblAgotado);
+                VBox vbox = new VBox(5, lblNombre, lblDescripcion, lblPrecio, stockBox);
                 hbox.getChildren().addAll(imageView, vbox);
                 hbox.setAlignment(Pos.CENTER_LEFT);
             }
@@ -87,12 +98,13 @@ public class InventarioView {
                     lblDescripcion.setText(item.getDescripcion());
                     lblPrecio.setText("Precio: $" + item.getPrecio());
                     lblStock.setText("Stock: " + item.getStock());
+                    // Mostrar indicador cuando stock == 0
+                    lblAgotado.setVisible(item.getStock() == 0);
                     String imagePath = "/img/productos/" + item.getImagen();
                     try {
                         Image image = new Image(getClass().getResourceAsStream(imagePath));
                         imageView.setImage(image);
                     } catch (Exception e) {
-                        // Placeholder image if not found
                         imageView.setImage(new Image(getClass().getResourceAsStream("/img/logo.png")));
                     }
                     setGraphic(hbox);
@@ -100,41 +112,134 @@ public class InventarioView {
             }
         });
 
+        // Panel derecho: detalle del producto seleccionado
+        VBox detailBox = new VBox(10);
+        detailBox.setPadding(new Insets(8));
+        detailBox.setAlignment(Pos.TOP_CENTER);
+        Label detailTitle = new Label("Selecciona un producto");
+        detailTitle.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
+
+        ImageView imageLarge = new ImageView();
+        // Imagen de detalle más grande (mejor visibilidad)
+        imageLarge.setFitWidth(360);
+        imageLarge.setFitHeight(270);
+        imageLarge.setPreserveRatio(true);
+
+        Label lblName = new Label();
+        Label lblDesc = new Label(); lblDesc.setWrapText(true);
+        Label lblPrice = new Label();
+        Label lblStock = new Label();
+        Label lblAgotadoDetail = new Label("Producto Agotado");
+        lblAgotadoDetail.setStyle("-fx-text-fill: red; -fx-font-weight: bold;");
+        lblAgotadoDetail.setVisible(false);
+
+        HBox stockDetailBox = new HBox(6, lblStock, lblAgotadoDetail);
+
+        detailBox.getChildren().addAll(detailTitle, imageLarge, lblName, lblDesc, lblPrice, stockDetailBox);
+
+        // Botones de acción (footer fijo en la columna derecha)
         Button btnAnadir = new Button("Añadir");
         Button btnModificar = new Button("Modificar");
         Button btnEliminar = new Button("Eliminar");
 
+        // Establecer que los botones puedan crecer y compartan el mismo ancho
+        btnAnadir.setMaxWidth(Double.MAX_VALUE); btnModificar.setMaxWidth(Double.MAX_VALUE); btnEliminar.setMaxWidth(Double.MAX_VALUE);
+
+        HBox footer = new HBox(8, btnAnadir, btnModificar, btnEliminar);
+        footer.setAlignment(Pos.CENTER_RIGHT);
+        HBox.setHgrow(btnAnadir, Priority.ALWAYS); HBox.setHgrow(btnModificar, Priority.ALWAYS); HBox.setHgrow(btnEliminar, Priority.ALWAYS);
+
+        // Añadir un spacer para empujar el footer al fondo del panel
+        Region spacer = new Region();
+        VBox.setVgrow(spacer, Priority.ALWAYS);
+        if (!isVendor) {
+            detailBox.getChildren().addAll(spacer, footer);
+        } else {
+            detailBox.getChildren().add(spacer);
+        }
+
+        // Acciones
         btnAnadir.setOnAction(e -> showProductoDialog(null));
         btnModificar.setOnAction(e -> {
             Producto selected = listView.getSelectionModel().getSelectedItem();
-            if (selected != null) {
-                showProductoDialog(selected);
-            }
+            if (selected != null) showProductoDialog(selected);
         });
         btnEliminar.setOnAction(e -> {
             Producto selected = listView.getSelectionModel().getSelectedItem();
-            if (selected != null) {
-                JsonManager.eliminarProducto(selected.getId());
-                cargarDatos();
+            if (selected != null) { JsonManager.eliminarProducto(selected.getId()); cargarDatos(); }
+        });
+
+        // Cuando cambia la selección, actualizar panel derecho
+        listView.getSelectionModel().selectedItemProperty().addListener((obs, oldSel, newSel) -> {
+            if (newSel == null) {
+                detailTitle.setText("Selecciona un producto");
+                imageLarge.setImage(null);
+                lblName.setText(""); lblDesc.setText(""); lblPrice.setText(""); lblStock.setText(""); lblAgotadoDetail.setVisible(false);
+            } else {
+                detailTitle.setText(newSel.getNombre());
+                lblName.setText("Nombre: " + newSel.getNombre());
+                lblDesc.setText(newSel.getDescripcion());
+                lblPrice.setText("Precio: $" + newSel.getPrecio());
+                lblStock.setText("Stock: " + newSel.getStock());
+                lblAgotadoDetail.setVisible(newSel.getStock() == 0);
+                String imagePath = "/img/productos/" + newSel.getImagen();
+                try { imageLarge.setImage(new Image(getClass().getResourceAsStream(imagePath))); }
+                catch (Exception ex) { imageLarge.setImage(new Image(getClass().getResourceAsStream("/img/logo.png"))); }
             }
         });
 
-        HBox actions = new HBox(8, btnAnadir, btnModificar, btnEliminar);
-        actions.setAlignment(Pos.CENTER_RIGHT);
+        // Layout: dos columnas
+        VBox leftCol = new VBox(8, searchBox, listView);
+        leftCol.setAlignment(Pos.TOP_CENTER);
+        leftCol.setPrefWidth(520);
+        HBox.setHgrow(leftCol, Priority.ALWAYS);
 
-        root.getChildren().addAll(titulo, searchBox, listView, actions);
+        // Ajustar ancho del panel derecho directamente
+        detailBox.setPrefWidth(360);
+
+        HBox twoCols = new HBox(12, leftCol, detailBox);
+        twoCols.setAlignment(Pos.TOP_CENTER);
+
+        // Auto-seleccionar el primer producto si existe
+        if (!filteredData.isEmpty()) { listView.getSelectionModel().selectFirst(); listView.scrollTo(0); }
+
+        root.getChildren().addAll(titulo, twoCols);
         return root;
     }
 
     public void mostrar(VBox contentArea) {
-        Node view = createView();
+        mostrar(contentArea, false);
+    }
+
+    // Nueva API: mostrar con bandera isVendor
+    public void mostrar(VBox contentArea, boolean isVendor) {
+        Node view = createView(isVendor);
         contentArea.getChildren().clear();
         contentArea.getChildren().add(view);
     }
 
     private void cargarDatos() {
+        // Intentar preservar la selección actual (por id) al recargar los productos
+        String selectedId = null;
+        if (listView != null && listView.getSelectionModel().getSelectedItem() != null) {
+            selectedId = listView.getSelectionModel().getSelectedItem().getId();
+        }
         List<Producto> productos = JsonManager.listarProductos();
         masterData.setAll(productos);
+        // Restaurar selección por id si existe, o seleccionar el primero
+        if (listView != null && !filteredData.isEmpty()) {
+            if (selectedId != null) {
+                for (int i = 0; i < masterData.size(); i++) {
+                    if (selectedId.equals(masterData.get(i).getId())) {
+                        listView.getSelectionModel().select(i);
+                        listView.scrollTo(i);
+                        return;
+                    }
+                }
+            }
+            listView.getSelectionModel().selectFirst();
+            listView.scrollTo(0);
+        }
     }
 
     private void showProductoDialog(Producto producto) {
@@ -146,8 +251,9 @@ public class InventarioView {
         root.setPadding(new Insets(12));
 
         GridPane grid = new GridPane();
-        grid.setHgap(10);
-        grid.setVgap(10);
+        grid.setHgap(12);
+        grid.setVgap(12);
+        grid.setPadding(new Insets(8));
 
         TextField tfNombre = new TextField();
         TextField tfDescripcion = new TextField();
@@ -187,6 +293,8 @@ public class InventarioView {
         grid.add(cbImagen, 1, 4);
 
         Button btnSave = new Button("Guardar");
+        btnSave.setDefaultButton(true);
+        btnSave.setMinWidth(100);
         btnSave.setOnAction(e -> {
             String nombre = tfNombre.getText();
             String descripcion = tfDescripcion.getText();
@@ -206,12 +314,18 @@ public class InventarioView {
         });
 
         root.setCenter(grid);
-        root.setBottom(btnSave);
-        BorderPane.setAlignment(btnSave, Pos.CENTER_RIGHT);
+        HBox bottom = new HBox(8, btnSave);
+        bottom.setPadding(new Insets(10));
+        bottom.setAlignment(Pos.CENTER_RIGHT);
+        root.setBottom(bottom);
+        BorderPane.setAlignment(bottom, Pos.CENTER_RIGHT);
 
-        Scene scene = new Scene(root);
+        // Aumentar tamaño del diálogo y permitir redimensionar
+        Scene scene = new Scene(root, 520, 420);
         dialog.setScene(scene);
+        dialog.setResizable(true);
+        dialog.setMinWidth(500);
+        dialog.setMinHeight(380);
         dialog.showAndWait();
     }
 }
-
