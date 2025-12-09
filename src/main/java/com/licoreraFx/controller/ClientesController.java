@@ -239,7 +239,18 @@ public class ClientesController implements Initializable {
              if (detalles.isEmpty()) { new Alert(Alert.AlertType.WARNING, "Selecciona al menos un producto").showAndWait(); return; }
             String id = com.licoreraFx.repository.VentaRepository.generarIdVenta();
             Venta venta = new Venta(id, cliente.getId(), cliente.getNombre(), detalles, total);
-            boolean ok = VentaService.crearVenta(venta);
+            // Asignar información del vendedor desde la sesión actual si existe
+            try {
+                com.licoreraFx.model.Usuario usuario = com.licoreraFx.util.SesionActual.getUsuario();
+                if (usuario != null) {
+                    venta.setVendedorId(usuario.getId());
+                    venta.setVendedorNombre(usuario.getNombre() != null && !usuario.getNombre().isEmpty() ? usuario.getNombre() : usuario.getUsername());
+                    venta.setVendedorRol(usuario.getRol());
+                }
+            } catch (Exception ignored) {}
+            // Asignar fecha actual ISO
+            try { venta.setFecha(java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME)); } catch (Exception ignored) {}
+             boolean ok = VentaService.crearVenta(venta);
              if (!ok) { new Alert(Alert.AlertType.ERROR, "Error guardando venta").showAndWait(); return; }
              new Alert(Alert.AlertType.INFORMATION, "Venta creada. Total: $" + String.format("%.2f", total)).showAndWait();
              dialog.close();

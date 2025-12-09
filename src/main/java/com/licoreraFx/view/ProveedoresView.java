@@ -247,9 +247,9 @@ public class ProveedoresView {
     }
 
     private void showModificarProveedorDialog() {
-        Proveedor sel = table.getSelectionModel().getSelectedItem();
-        if (sel == null) {
-            new Alert(Alert.AlertType.WARNING, "Selecciona un proveedor para modificar.").showAndWait();
+        List<Proveedor> proveedores = ProveedorRepository.listarProveedores();
+        if (proveedores.isEmpty()) {
+            new Alert(Alert.AlertType.WARNING, "No hay proveedores para modificar.", ButtonType.OK).showAndWait();
             return;
         }
 
@@ -260,18 +260,43 @@ public class ProveedoresView {
         javafx.scene.layout.BorderPane root = new javafx.scene.layout.BorderPane();
         root.setPadding(new Insets(12));
 
-        TextField tfNombreEmpresa = new TextField(sel.getNombreEmpresa());
-        TextField tfEmail = new TextField(sel.getEmail());
-        TextField tfDireccion = new TextField(sel.getDireccion());
-        TextField tfRut = new TextField(sel.getRut());
+        ComboBox<Proveedor> cbProveedores = new ComboBox<>(FXCollections.observableArrayList(proveedores));
+        cbProveedores.setPromptText("Seleccionar proveedor");
+        cbProveedores.setMaxWidth(Double.MAX_VALUE);
+        cbProveedores.setConverter(new javafx.util.StringConverter<>() {
+            @Override
+            public String toString(Proveedor p) { return p == null ? "" : (p.getNombreEmpresa() == null ? p.getId() : p.getNombreEmpresa()); }
+            @Override
+            public Proveedor fromString(String string) { return null; }
+        });
 
-        Button btnSave = new Button("Guardar");
-        Button btnCancel = new Button("Cancelar");
+        TextField tfNombreEmpresa = new TextField();
+        TextField tfEmail = new TextField();
+        TextField tfDireccion = new TextField();
+        TextField tfRut = new TextField();
 
         Label lblError = new Label();
         lblError.getStyleClass().add("dialog-error");
 
+        // Al seleccionar un proveedor, rellenar los campos
+        cbProveedores.setOnAction(e -> {
+            Proveedor p = cbProveedores.getValue();
+            if (p != null) {
+                tfNombreEmpresa.setText(p.getNombreEmpresa() == null ? "" : p.getNombreEmpresa());
+                tfEmail.setText(p.getEmail() == null ? "" : p.getEmail());
+                tfDireccion.setText(p.getDireccion() == null ? "" : p.getDireccion());
+                tfRut.setText(p.getRut() == null ? "" : p.getRut());
+            } else {
+                tfNombreEmpresa.clear(); tfEmail.clear(); tfDireccion.clear(); tfRut.clear();
+            }
+        });
+
+        Button btnSave = new Button("Guardar");
+        Button btnCancel = new Button("Cancelar");
+
         btnSave.setOnAction(e -> {
+            Proveedor sel = cbProveedores.getValue();
+            if (sel == null) { lblError.setText("Selecciona un proveedor."); return; }
             String nombreEmpresa = tfNombreEmpresa.getText().trim();
             String email = tfEmail.getText().trim();
             String direccion = tfDireccion.getText().trim();
@@ -297,11 +322,19 @@ public class ProveedoresView {
         HBox btns = new HBox(8, btnSave, btnCancel);
         btns.setAlignment(Pos.CENTER_RIGHT);
 
-        VBox formBox = new VBox(8, new Label("Nombre Empresa:"), tfNombreEmpresa, new Label("Email:"), tfEmail, new Label("Dirección:"), tfDireccion, new Label("RUT:"), tfRut, lblError);
+        VBox formBox = new VBox(8,
+                new Label("Proveedor:"), cbProveedores,
+                new Label("Nombre Empresa:"), tfNombreEmpresa,
+                new Label("Email:"), tfEmail,
+                new Label("Dirección:"), tfDireccion,
+                new Label("RUT:"), tfRut,
+                lblError
+        );
+
         root.setCenter(formBox);
         root.setBottom(btns);
 
-        Scene scene = new Scene(root, 400, 300);
+        Scene scene = new Scene(root, 420, 360);
         dialog.setScene(scene);
         dialog.showAndWait();
     }
@@ -319,8 +352,6 @@ public class ProveedoresView {
         Label lblNombre = new Label("Proveedor: " + proveedor.getNombreEmpresa());
 
         // Datos de compra (sin fecha)
-        TextField tfNumeroFactura = new TextField();
-        tfNumeroFactura.setPromptText("Número de factura");
         ComboBox<String> cbMetodoPago = new ComboBox<>(FXCollections.observableArrayList("Efectivo", "Transferencia", "Tarjeta", "Crédito"));
         cbMetodoPago.setPromptText("Método de pago");
         TextArea taNotas = new TextArea();
@@ -419,8 +450,16 @@ public class ProveedoresView {
             } catch (Exception ignored) {}
         });
 
-        Label lblTotal = new Label("Total: $0.00");
-        itemsData.addListener((javafx.collections.ListChangeListener<Compra.Item>) c -> updateTotal(lblTotal, itemsData));
+        Label lblSubtotal = new Label("Subtotal: $0.00");
+        Label lblIva = new Label("IVA (19%): $0.00");
+        Label lblTotal = new Label("Total a pagar: $0.00");
+        VBox totales = new VBox(6);
+        totales.setAlignment(Pos.CENTER_RIGHT);
+        lblSubtotal.setMaxWidth(Double.MAX_VALUE); lblSubtotal.setAlignment(Pos.CENTER_RIGHT);
+        lblIva.setMaxWidth(Double.MAX_VALUE); lblIva.setAlignment(Pos.CENTER_RIGHT);
+        lblTotal.setMaxWidth(Double.MAX_VALUE); lblTotal.setAlignment(Pos.CENTER_RIGHT);
+        totales.getChildren().addAll(lblSubtotal, lblIva, lblTotal);
+        itemsData.addListener((javafx.collections.ListChangeListener<Compra.Item>) c -> updateTotals(lblSubtotal, lblIva, lblTotal, itemsData));
 
         Label lblError = new Label();
         lblError.getStyleClass().add("dialog-error");
@@ -448,7 +487,7 @@ public class ProveedoresView {
             } else {
                 itemsData.add(new Compra.Item(productoSeleccionado.getId(), productoSeleccionado.getNombre(), cantidad, precioUnitario));
             }
-            updateTotal(lblTotal, itemsData);
+            updateTotals(lblSubtotal, lblIva, lblTotal, itemsData);
         });
 
 
@@ -458,12 +497,11 @@ public class ProveedoresView {
         btns.setAlignment(Pos.CENTER_RIGHT);
 
         btnCrear.setOnAction(e -> {
-            String numeroFactura = tfNumeroFactura.getText().trim();
             String metodoPago = cbMetodoPago.getValue();
             String notas = taNotas.getText().trim();
 
-            if (numeroFactura.isEmpty() || metodoPago == null) {
-                lblError.setText("Número de factura y método de pago son obligatorios.");
+            if (metodoPago == null) {
+                lblError.setText("El método de pago es obligatorio.");
                 return;
             }
 
@@ -485,11 +523,13 @@ public class ProveedoresView {
             Compra compra = new Compra();
             compra.setId(CompraRepository.generarIdCompra());
             compra.setProveedorId(proveedor.getId());
-            compra.setNumeroFactura(numeroFactura);
+            // El número de factura fue eliminado; no se establece en la compra
             compra.setMetodoPago(metodoPago);
             compra.setTotal(total);
             compra.setItems(items);
             compra.setNotas(notas);
+            // Asignar fecha actual ISO
+            try { compra.setFecha(java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME)); } catch (Exception ignored) {}
 
             boolean guardada = CompraRepository.agregarCompra(compra);
             if (!guardada) {
@@ -497,10 +537,10 @@ public class ProveedoresView {
                 return;
             }
 
-            updateTotal(lblTotal, itemsData);
+            updateTotals(lblSubtotal, lblIva, lblTotal, itemsData);
             new Alert(Alert.AlertType.INFORMATION,
                     "Compra creada para '" + proveedor.getNombreEmpresa() + "'\n" +
-                            "Factura: " + numeroFactura + "\n" +
+                            "Factura: " + compra.getId() + "\n" +
                             "Pago: " + metodoPago + "\n" +
                             "Total: $" + String.format("%.2f", total)).showAndWait();
             dialog.close();
@@ -521,25 +561,28 @@ public class ProveedoresView {
 
         // Usar selectionBox y addBtnBox en el formulario
         VBox form = new VBox(8,
-                new Label("Número de factura:"), tfNumeroFactura,
-                new Label("Método de pago:"), cbMetodoPago,
-                new Label("Notas:"), taNotas,
-                new Label("Productos y cantidades:"), selectionBox, addBtnBox, tablaItems,
-                lblTotal,
-                lblError
-        );
+                 new Label("Método de pago:"), cbMetodoPago,
+                 new Label("Notas:"), taNotas,
+                 new Label("Productos y cantidades:"), selectionBox, addBtnBox, tablaItems,
+                 totales,
+                 lblError
+         );
 
-        root.getChildren().addAll(info, lblNombre, form, btns);
-        Scene scene = new Scene(root, 700, 500);
-        dialog.setScene(scene);
-        dialog.showAndWait();
+         root.getChildren().addAll(info, lblNombre, form, btns);
+         Scene scene = new Scene(root, 700, 500);
+         dialog.setScene(scene);
+         dialog.showAndWait();
     }
 
-    private void updateTotal(Label lblTotal, ObservableList<Compra.Item> itemsData) {
-        double total = 0;
+    private void updateTotals(Label lblSubtotal, Label lblIva, Label lblTotal, ObservableList<Compra.Item> itemsData) {
+        double subtotal = 0;
         for (Compra.Item it : itemsData) {
-            total += it.getCantidad() * it.getPrecio();
+            subtotal += it.getCantidad() * it.getPrecio();
         }
-        lblTotal.setText("Total: $" + String.format("%.2f", total));
+        double iva = subtotal * 0.19;
+        double totalPagar = subtotal; // Según la regla: total a pagar = suma de subtotales (sin IVA)
+        lblSubtotal.setText("Subtotal: $" + String.format("%.2f", subtotal));
+        lblIva.setText("IVA (19%): $" + String.format("%.2f", iva));
+        lblTotal.setText("Total a pagar (sin IVA): $" + String.format("%.2f", totalPagar));
     }
 }

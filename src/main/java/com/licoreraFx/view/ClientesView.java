@@ -543,7 +543,22 @@ public class ClientesView {
             }
 
             Venta venta = new Venta(null, cliente.getId(), cliente.getNombre(), detalles, total);
-            boolean ok = VentaService.crearVenta(venta);
+            // Asignar información del vendedor desde la sesión actual si está disponible
+            try {
+                com.licoreraFx.util.SesionActual sa = null; // solo para referenciar la clase
+                com.licoreraFx.model.Usuario usuario = com.licoreraFx.util.SesionActual.getUsuario();
+                if (usuario != null) {
+                    venta.setVendedorId(usuario.getId());
+                    venta.setVendedorNombre(usuario.getNombre() != null && !usuario.getNombre().isEmpty() ? usuario.getNombre() : usuario.getUsername());
+                    venta.setVendedorRol(usuario.getRol());
+                }
+            } catch (Exception ignored) {}
+            // Asignar fecha actual en formato ISO
+            try {
+                String fechaNow = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+                venta.setFecha(fechaNow);
+            } catch (Exception ignored) {}
+             boolean ok = VentaService.crearVenta(venta);
             if (ok) {
                 new Alert(Alert.AlertType.INFORMATION, "Venta registrada correctamente.\nTotal: $" + String.format("%.2f", total), ButtonType.OK).showAndWait();
                 dialog.close();

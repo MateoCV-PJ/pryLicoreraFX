@@ -1,17 +1,27 @@
 [
   {
-    "id": "2",
+    "id": "1",
     "clienteId": "1",
     "nombreCliente": "Sebastian Varela Garcia",
     "detalles": [
       {
+        "productoId": "2",
+        "nombreProducto": "Aguardiente Antioqueño Rojo 1L",
+        "cantidad": 4,
+        "precioUnitario": 98000.0,
+        "subtotal": 392000.0
+      },
+      {
         "productoId": "4",
         "nombreProducto": "Club Colombia x6",
-        "cantidad": 3,
+        "cantidad": 2,
         "precioUnitario": 15800.0,
-        "subtotal": 47400.0
+        "subtotal": 31600.0
       }
     ],
-    "total": 47400.0
+    "total": 423600.0,
+    "vendedorNombre": "Administrador",
+    "vendedorRol": "ADMIN",
+    "fecha": "2025-12-09T18:02:10.9876632"
   }
 ]

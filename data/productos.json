@@ -4,7 +4,7 @@
     "nombre": "Aguardiente Antioqueño Rojo 1L",
     "descripcion": "Aguardiente Antioqueño Rojo Caja de un 1L",
     "precio": 98000.0,
-    "stock": 19,
+    "stock": 6,
     "imagen": "Aguardiente-Antioqueno-Caja-X-1-lt.jpg"
   },
   {
@@ -12,7 +12,7 @@
     "nombre": "Cerveza Lata Aguila x6",
     "descripcion": "",
     "precio": 19900.0,
-    "stock": 3,
+    "stock": 6,
     "imagen": "Cerveza-Lata-Sixpack-AGUILA.jpg"
   },
   {
@@ -30,5 +30,13 @@
     "precio": 100000.0,
     "stock": 10,
     "imagen": "Aguardiente-Verde-X-1lt.jpg"
+  },
+  {
+    "id": "6",
+    "nombre": "Four Loko Sandia",
+    "descripcion": "Coctel de Frutas",
+    "precio": 15000.0,
+    "stock": 11,
+    "imagen": "COCTEL-SANDIA-FOUR-LOKO-473-Mililitro-3003287_a.jpg"
   }
 ]

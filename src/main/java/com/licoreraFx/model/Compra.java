@@ -10,10 +10,11 @@ import java.util.List;
 public class Compra {
     private String id;            // autoincremental en JSON
     private String proveedorId;   // id del proveedor
-    private String numeroFactura; // número de factura
     private String metodoPago;    // Efectivo/Transferencia/Tarjeta/Crédito
     private double total;         // total calculado
     private String notas;         // opcional
+    // Fecha de la compra en formato ISO
+    private String fecha;
     private List<Item> items = new ArrayList<>(); // detalle de productos
 
     /**
@@ -46,8 +47,6 @@ public class Compra {
     public void setId(String id) { this.id = id; }
     public String getProveedorId() { return proveedorId; }
     public void setProveedorId(String proveedorId) { this.proveedorId = proveedorId; }
-    public String getNumeroFactura() { return numeroFactura; }
-    public void setNumeroFactura(String numeroFactura) { this.numeroFactura = numeroFactura; }
     public String getMetodoPago() { return metodoPago; }
     public void setMetodoPago(String metodoPago) { this.metodoPago = metodoPago; }
     public double getTotal() { return total; }
@@ -56,4 +55,6 @@ public class Compra {
     public void setNotas(String notas) { this.notas = notas; }
     public List<Item> getItems() { return items; }
     public void setItems(List<Item> items) { this.items = items != null ? items : new ArrayList<>(); }
+    public String getFecha() { return fecha; }
+    public void setFecha(String fecha) { this.fecha = fecha; }
 }

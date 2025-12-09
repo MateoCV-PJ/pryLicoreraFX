@@ -261,12 +261,27 @@ public class InventarioView {
         grid.setHgap(12);
         grid.setVgap(12);
         grid.setPadding(new Insets(8));
+        // Column constraints: primera columna fija (etiquetas), segunda columna expandible (inputs)
+        javafx.scene.layout.ColumnConstraints col1 = new javafx.scene.layout.ColumnConstraints();
+        col1.setPrefWidth(140);
+        col1.setHgrow(Priority.NEVER);
+        javafx.scene.layout.ColumnConstraints col2 = new javafx.scene.layout.ColumnConstraints();
+        col2.setHgrow(Priority.ALWAYS);
+        grid.getColumnConstraints().addAll(col1, col2);
+        grid.setPrefWidth(660);
 
         TextField tfNombre = new TextField();
         TextField tfDescripcion = new TextField();
         TextField tfPrecio = new TextField();
         TextField tfStock = new TextField();
         ComboBox<String> cbImagen = new ComboBox<>();
+
+        // Permitir que los campos crezcan para aprovechar el nuevo ancho
+        GridPane.setHgrow(tfNombre, Priority.ALWAYS);
+        GridPane.setHgrow(tfDescripcion, Priority.ALWAYS);
+        GridPane.setHgrow(tfPrecio, Priority.ALWAYS);
+        GridPane.setHgrow(tfStock, Priority.ALWAYS);
+        GridPane.setHgrow(cbImagen, Priority.ALWAYS);
 
         // Llenar el ComboBox con los nombres de archivo de la carpeta de imágenes
         File folder = new File("src/main/resources/img/productos");
@@ -302,12 +317,43 @@ public class InventarioView {
         Button btnSave = new Button("Guardar");
         btnSave.setDefaultButton(true);
         btnSave.setMinWidth(100);
+
+        // Etiqueta para mostrar errores de validación dentro del diálogo
+        Label lblError = new Label();
+        lblError.getStyleClass().add("dialog-error");
+
+        Button btnCancel = new Button("Cancelar");
+        btnCancel.setMinWidth(100);
+
         btnSave.setOnAction(e -> {
-            String nombre = tfNombre.getText();
-            String descripcion = tfDescripcion.getText();
-            double precio = Double.parseDouble(tfPrecio.getText());
-            int stock = Integer.parseInt(tfStock.getText());
+            String nombre = tfNombre.getText().trim();
+            String descripcion = tfDescripcion.getText().trim();
+            String precioStr = tfPrecio.getText().trim();
+            String stockStr = tfStock.getText().trim();
             String imagen = cbImagen.getValue();
+
+            if (nombre.isEmpty() || descripcion.isEmpty() || precioStr.isEmpty() || stockStr.isEmpty() || imagen == null || imagen.isEmpty()) {
+                lblError.setText("Todos los campos son obligatorios.");
+                return;
+            }
+
+            double precio;
+            int stock;
+            try {
+                precio = Double.parseDouble(precioStr);
+            } catch (NumberFormatException ex) {
+                lblError.setText("Precio inválido. Usa un número válido (ej: 12.50).");
+                return;
+            }
+            try {
+                stock = Integer.parseInt(stockStr);
+            } catch (NumberFormatException ex) {
+                lblError.setText("Stock inválido. Usa un número entero.");
+                return;
+            }
+
+            if (precio < 0) { lblError.setText("El precio debe ser mayor o igual a 0."); return; }
+            if (stock < 0) { lblError.setText("El stock debe ser mayor o igual a 0."); return; }
 
             if (producto == null) {
                 Producto nuevo = new Producto(null, nombre, descripcion, precio, stock, imagen);
@@ -320,19 +366,22 @@ public class InventarioView {
             dialog.close();
         });
 
+        btnCancel.setOnAction(ev -> dialog.close());
+
         root.setCenter(grid);
-        HBox bottom = new HBox(8, btnSave);
+        HBox bottom = new HBox(8, lblError, btnCancel, btnSave);
         bottom.setPadding(new Insets(10));
         bottom.setAlignment(Pos.CENTER_RIGHT);
+        HBox.setHgrow(lblError, Priority.ALWAYS);
         root.setBottom(bottom);
         BorderPane.setAlignment(bottom, Pos.CENTER_RIGHT);
 
         // Aumentar tamaño del diálogo y permitir redimensionar
-        Scene scene = new Scene(root, 520, 420);
+        Scene scene = new Scene(root, 700, 520);
         dialog.setScene(scene);
         dialog.setResizable(true);
-        dialog.setMinWidth(500);
-        dialog.setMinHeight(380);
+        dialog.setMinWidth(660);
+        dialog.setMinHeight(480);
         dialog.showAndWait();
     }
 }

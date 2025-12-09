@@ -11,6 +11,8 @@ import java.util.List;
  */
 public class VentaRepository {
     private static final Object LOCK = new Object();
+    // Lista de listeners que serán notificados cuando cambien las ventas (UI puede registrarse)
+    private static final java.util.List<Runnable> changeListeners = new java.util.ArrayList<>();
 
     /** Lista todas las ventas. */
     public static List<Venta> listarVentas() {
@@ -29,14 +31,18 @@ public class VentaRepository {
     /** Agrega una venta nueva. */
     public static boolean agregarVenta(Venta venta) {
         synchronized (LOCK) {
-            return JsonManager.agregarVenta(venta);
+            boolean ok = JsonManager.agregarVenta(venta);
+            if (ok) notifyChangeListeners();
+            return ok;
         }
     }
 
     /** Elimina una venta por id. */
     public static boolean eliminarVenta(String id) {
         synchronized (LOCK) {
-            return JsonManager.eliminarVenta(id);
+            boolean ok = JsonManager.eliminarVenta(id);
+            if (ok) notifyChangeListeners();
+            return ok;
         }
     }
 
@@ -44,6 +50,22 @@ public class VentaRepository {
     public static String generarIdVenta() {
         synchronized (LOCK) {
             return JsonManager.generarIdVenta();
+        }
+    }
+
+    public static void addChangeListener(Runnable r) {
+        synchronized (LOCK) { if (r != null) changeListeners.add(r); }
+    }
+
+    public static void removeChangeListener(Runnable r) {
+        synchronized (LOCK) { changeListeners.remove(r); }
+    }
+
+    private static void notifyChangeListeners() {
+        java.util.List<Runnable> copy;
+        synchronized (LOCK) { copy = new java.util.ArrayList<>(changeListeners); }
+        for (Runnable r : copy) {
+            try { javafx.application.Platform.runLater(r); } catch (Exception ignored) {}
         }
     }
 }

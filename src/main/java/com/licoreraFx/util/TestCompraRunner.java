@@ -34,11 +34,12 @@ public class TestCompraRunner {
             Compra compra = new Compra();
             compra.setId(JsonManager.generarIdCompra());
             compra.setProveedorId("TEST_PROV");
-            compra.setNumeroFactura("TEST-" + System.currentTimeMillis());
             compra.setMetodoPago("Efectivo");
             compra.setTotal(item.getCantidad() * item.getPrecio());
             compra.setItems(items);
             compra.setNotas("Compra de prueba desde TestCompraRunner");
+            // Asignar fecha de prueba en formato ISO
+            try { compra.setFecha(java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME)); } catch (Exception ignored) {}
 
             boolean ok = JsonManager.agregarCompra(compra);
             System.out.println("agregarCompra returned: " + ok);

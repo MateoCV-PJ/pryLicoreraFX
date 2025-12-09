@@ -75,7 +75,7 @@ public class ComprasController {
             return new SimpleStringProperty(p != null ? p.getNombreEmpresa() : "-");
         });
         TableColumn<Compra, String> colFactura = new TableColumn<>("Factura");
-        colFactura.setCellValueFactory(cdf -> new SimpleStringProperty(cdf.getValue().getNumeroFactura()));
+        colFactura.setCellValueFactory(cdf -> new SimpleStringProperty(cdf.getValue().getId()));
         TableColumn<Compra, Number> colTotal = new TableColumn<>("Total");
         colTotal.setCellValueFactory(cdf -> new SimpleDoubleProperty(cdf.getValue().getTotal()));
         TableColumn<Compra, String> colPago = new TableColumn<>("Método Pago");
@@ -93,7 +93,8 @@ public class ComprasController {
                 });
                 btnEliminar.setOnAction(evt -> {
                     Compra compra = getTableView().getItems().get(getIndex());
-                    Alert confirm = new Alert(Alert.AlertType.CONFIRMATION, "¿Eliminar compra '" + compra.getNumeroFactura() + "'?", ButtonType.YES, ButtonType.NO);
+                    String facturaOrId = compra.getId();
+                    Alert confirm = new Alert(Alert.AlertType.CONFIRMATION, "¿Eliminar compra '" + facturaOrId + "'?", ButtonType.YES, ButtonType.NO);
                     confirm.showAndWait().ifPresent(bt -> {
                         if (bt == ButtonType.YES) {
                             boolean ok = JsonManager.eliminarCompra(compra.getId());
@@ -104,8 +105,8 @@ public class ComprasController {
                             }
                         }
                     });
-                });
-            }
+                 });
+             }
             @Override
             protected void updateItem(Void item, boolean empty) {
                 super.updateItem(item, empty);
@@ -113,7 +114,7 @@ public class ComprasController {
             }
         });
 
-        table.getColumns().addAll(colId, colProveedor, colFactura, colTotal, colPago, colAccion);
+        table.getColumns().addAll(java.util.Arrays.asList(colId, colProveedor, colFactura, colTotal, colPago, colAccion));
         Platform.runLater(() -> {
             try {
                 var cols = table.getColumns();
@@ -133,7 +134,7 @@ public class ComprasController {
                 Proveedor p = proveedoresById.get(compra.getProveedorId());
                 String provName = p != null ? p.getNombreEmpresa() : "";
                 return provName.toLowerCase().contains(q) ||
-                        (compra.getNumeroFactura() != null && compra.getNumeroFactura().toLowerCase().contains(q)) ||
+                        (compra.getId() != null && compra.getId().toLowerCase().contains(q)) ||
                         (compra.getMetodoPago() != null && compra.getMetodoPago().toLowerCase().contains(q));
             });
         });
@@ -160,14 +161,14 @@ public class ComprasController {
     private void mostrarFactura(Compra compra) {
         Stage dialog = new Stage();
         dialog.initModality(Modality.APPLICATION_MODAL);
-        dialog.setTitle("Factura de Compra " + compra.getNumeroFactura());
+        dialog.setTitle("Factura de Compra " + compra.getId());
 
-        VBox root = new VBox(10);
-        root.setPadding(new Insets(12));
+         VBox root = new VBox(10);
+         root.setPadding(new Insets(12));
 
-        Proveedor p = proveedoresById.get(compra.getProveedorId());
+         Proveedor p = proveedoresById.get(compra.getProveedorId());
         Label lblProv = new Label("Proveedor: " + (p != null ? p.getNombreEmpresa() : compra.getProveedorId()));
-        Label lblFac = new Label("Factura: " + compra.getNumeroFactura());
+        Label lblFac = new Label("Factura: " + compra.getId());
         Label lblPago = new Label("Método de Pago: " + compra.getMetodoPago());
         Label lblTotal = new Label("Total: $" + String.format("%.2f", compra.getTotal()));
 
@@ -182,7 +183,7 @@ public class ComprasController {
         cPrecio.setCellValueFactory(ci -> new SimpleDoubleProperty(ci.getValue().getPrecio()));
         TableColumn<Compra.Item, Number> cSub = new TableColumn<>("Subtotal");
         cSub.setCellValueFactory(ci -> new SimpleDoubleProperty(ci.getValue().getPrecio() * ci.getValue().getCantidad()));
-        tablaItems.getColumns().addAll(cProd, cCant, cPrecio, cSub);
+        tablaItems.getColumns().addAll(java.util.Arrays.asList(cProd, cCant, cPrecio, cSub));
         Platform.runLater(() -> {
             try {
                 var cols = tablaItems.getColumns();

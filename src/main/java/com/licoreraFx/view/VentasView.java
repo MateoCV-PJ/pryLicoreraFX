@@ -63,12 +63,66 @@ public class VentasView {
 
         TableColumn<Venta, String> colId = new TableColumn<>();
         colId.setCellValueFactory(cell -> new SimpleStringProperty(cell.getValue().getId()));
-        Label lblId = new Label("ID"); lblId.setStyle("-fx-font-weight: bold;"); colId.setGraphic(lblId); colId.setStyle("-fx-alignment: CENTER;");
+        Label lblId = new Label("Factura"); lblId.setStyle("-fx-font-weight: bold;"); colId.setGraphic(lblId); colId.setStyle("-fx-alignment: CENTER;");
 
         TableColumn<Venta, String> colCliente = new TableColumn<>();
         colCliente.setCellValueFactory(cell -> new SimpleStringProperty(cell.getValue().getNombreCliente()));
         Label lblCliente = new Label("Cliente"); lblCliente.setStyle("-fx-font-weight: bold;"); colCliente.setGraphic(lblCliente); colCliente.setStyle("-fx-alignment: CENTER;");
 
+        // Columna Fecha (mostrar solo dd/MM/yyyy)
+        TableColumn<Venta, String> colFecha = new TableColumn<>();
+        colFecha.setCellValueFactory(cell -> {
+            String raw = cell.getValue() != null ? cell.getValue().getFecha() : null;
+            String out = "-";
+            if (raw != null && !raw.trim().isEmpty()) {
+                try {
+                    java.time.LocalDateTime ldt = java.time.LocalDateTime.parse(raw);
+                    out = ldt.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+                } catch (Exception ex1) {
+                    try {
+                        java.time.LocalDate ld = java.time.LocalDate.parse(raw);
+                        out = ld.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+                    } catch (Exception ex2) {
+                        // Fallback: si contiene 'T' tomar la parte antes de T y tratar de parsear
+                        try {
+                            if (raw.contains("T")) {
+                                String datePart = raw.split("T")[0];
+                                java.time.LocalDate ld2 = java.time.LocalDate.parse(datePart);
+                                out = ld2.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+                            } else {
+                                out = raw;
+                            }
+                        } catch (Exception ex3) { out = raw; }
+                    }
+                }
+            }
+            return new SimpleStringProperty(out);
+        });
+        Label lblFecha = new Label("Fecha"); lblFecha.setStyle("-fx-font-weight: bold;"); colFecha.setGraphic(lblFecha); colFecha.setStyle("-fx-alignment: CENTER;");
+
+        // Columna para mostrar el vendedor (nombre) o indicar si fue Administrador
+        TableColumn<Venta, String> colVendedor = new TableColumn<>();
+        colVendedor.setCellValueFactory(cell -> {
+            Venta v = cell.getValue();
+            String nombre = v == null ? null : v.getVendedorNombre();
+            String rol = v == null ? null : v.getVendedorRol();
+            String texto;
+            if (nombre != null && !nombre.trim().isEmpty()) {
+                texto = nombre;
+                if (rol != null) {
+                    String r = rol.trim().toUpperCase();
+                    if (r.equals("ADMIN") || r.equals("ADMINISTRADOR")) texto += " (Administrador)";
+                }
+            } else if (rol != null) {
+                String r = rol.trim().toUpperCase();
+                if (r.equals("ADMIN") || r.equals("ADMINISTRADOR")) texto = "Administrador";
+                else texto = "(no registrado)";
+            } else {
+                texto = "(no registrado)";
+            }
+            return new SimpleStringProperty(texto);
+        });
+        Label lblVendedor = new Label("Vendedor"); lblVendedor.setStyle("-fx-font-weight: bold;"); colVendedor.setGraphic(lblVendedor); colVendedor.setStyle("-fx-alignment: CENTER;");
 
         TableColumn<Venta, String> colTotal = new TableColumn<>();
         colTotal.setCellValueFactory(cell -> new SimpleStringProperty(String.format("$%.2f", cell.getValue().getTotal())));
@@ -103,7 +157,7 @@ public class VentasView {
         });
 
         //noinspection unchecked
-        table.getColumns().addAll(colId, colCliente, colTotal, colAccion);
+        table.getColumns().addAll(colId, colFecha, colCliente, colVendedor, colTotal, colAccion);
 
         // Configurar filtrado
         filtered = new FilteredList<>(masterData, p -> true);
@@ -125,6 +179,12 @@ public class VentasView {
 
         // Cargar datos en background
         loadDataAsync();
+
+        // Registrar listener para refrescar la tabla cuando cambien las ventas
+        com.licoreraFx.repository.VentaRepository.addChangeListener(() -> {
+            // recargar datos en background
+            loadDataAsync();
+        });
 
         return root;
     }
@@ -194,10 +254,39 @@ public class VentasView {
         } catch (Exception ignored) {}
 
         Label lblCliente = new Label("Cliente: " + (venta.getNombreCliente() != null ? venta.getNombreCliente() : "-"));
+        // Formatear fecha detalle (dd/MM/yyyy)
+        String fechaRaw = venta.getFecha();
+        String fechaFmt = "-";
+        if (fechaRaw != null && !fechaRaw.trim().isEmpty()) {
+            try { fechaFmt = java.time.LocalDateTime.parse(fechaRaw).format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")); }
+            catch (Exception ex1) {
+                try { fechaFmt = java.time.LocalDate.parse(fechaRaw).format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")); }
+                catch (Exception ex2) {
+                    try { if (fechaRaw.contains("T")) fechaFmt = java.time.LocalDate.parse(fechaRaw.split("T")[0]).format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")); else fechaFmt = fechaRaw; } catch (Exception ex3) { fechaFmt = fechaRaw; }
+                }
+            }
+        }
+        Label lblFechaVenta = new Label("Fecha: " + fechaFmt);
         Label lblDocumento = new Label("Documento: " + documento);
         Label lblDireccion = new Label("Dirección: " + direccion);
         Label lblCorreo = new Label("Correo: " + correo);
-        Label lblIdCliente = new Label("ID Cliente: " + idCliente);
+        Label lblIdCliente = new Label("Factura: " + idCliente);
+
+        // Mostrar información del vendedor (si se registró al crear la venta)
+        String vendedorNombre = venta.getVendedorNombre() != null ? venta.getVendedorNombre() : null;
+        String vendedorRol = venta.getVendedorRol() != null ? venta.getVendedorRol() : null;
+        String vendedorTexto = "(no registrado)";
+        if (vendedorNombre != null && !vendedorNombre.trim().isEmpty()) {
+            vendedorTexto = vendedorNombre;
+            if (vendedorRol != null) {
+                String r = vendedorRol.trim().toUpperCase();
+                if (r.equals("ADMIN") || r.equals("ADMINISTRADOR")) vendedorTexto += " (Administrador)";
+            }
+        } else if (vendedorRol != null) {
+            String r = vendedorRol.trim().toUpperCase();
+            if (r.equals("ADMIN") || r.equals("ADMINISTRADOR")) vendedorTexto = "Administrador";
+        }
+        Label lblVendedor = new Label(vendedorTexto);
 
         TableView<DetalleVenta> tableDetalles = new TableView<>();
         tableDetalles.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
@@ -268,7 +357,8 @@ public class VentasView {
         double subtotalVal = 0;
         for (DetalleVenta dv : detalles) subtotalVal += dv.getSubtotal();
         double ivaVal = subtotalVal * 0.19; // 19%
-        double totalPagarVal = subtotalVal + ivaVal;
+        // El total a pagar en esta vista es solo la suma de los subtotales (sin añadir IVA)
+        double totalPagarVal = subtotalVal;
 
         Label lblSubtotalVal = new Label("Subtotal: $" + String.format("%.2f", subtotalVal));
         Label lblIvaVal = new Label("IVA (19%): $" + String.format("%.2f", ivaVal));
@@ -292,7 +382,7 @@ public class VentasView {
         HBox btnBox = new HBox(btnCerrar);
         btnBox.setAlignment(Pos.CENTER_RIGHT);
 
-        root.getChildren().addAll(new VBox(2, lblCliente, lblDocumento, lblDireccion, lblCorreo, lblIdCliente), new Label("Productos:"), tableDetalles, totales, btnBox);
+        root.getChildren().addAll(new VBox(2, lblCliente, lblFechaVenta, lblDocumento, lblDireccion, lblCorreo, lblIdCliente), new Label("Productos:"), tableDetalles, totales, btnBox);
 
         Scene scene = new Scene(root, 600, 400);
         dialog.setScene(scene);

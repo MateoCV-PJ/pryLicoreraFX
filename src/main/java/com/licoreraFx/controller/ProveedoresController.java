@@ -74,7 +74,8 @@ public class ProveedoresController {
         colDireccion.setCellValueFactory(cell -> new SimpleStringProperty(cell.getValue().getDireccion()));
         TableColumn<Proveedor, String> colRut = new TableColumn<>("RUT");
         colRut.setCellValueFactory(cell -> new SimpleStringProperty(cell.getValue().getRut()));
-        table.getColumns().addAll(colId, colNombreEmpresa, colEmail, colDireccion, colRut);
+        final java.util.List<TableColumn<Proveedor, ?>> _cols = java.util.Arrays.asList(colId, colNombreEmpresa, colEmail, colDireccion, colRut);
+        table.getColumns().addAll(_cols);
         Platform.runLater(() -> {
             try {
                 var cols = table.getColumns();
@@ -214,24 +215,48 @@ public class ProveedoresController {
     }
 
     private void showModificarProveedorDialog() {
-        Proveedor sel = table.getSelectionModel().getSelectedItem();
-        if (sel == null) { new Alert(Alert.AlertType.WARNING, "Selecciona un proveedor para modificar.").showAndWait(); return; }
+        List<Proveedor> proveedores = JsonManager.listarProveedores();
+        if (proveedores.isEmpty()) { new Alert(Alert.AlertType.WARNING, "No hay proveedores para modificar.", ButtonType.OK).showAndWait(); return; }
         Stage dialog = new Stage();
         dialog.initModality(Modality.APPLICATION_MODAL);
         dialog.setTitle("Modificar Proveedor");
         VBox root = new VBox(8);
         root.setPadding(new Insets(12));
 
-        TextField tfNombreEmpresa = new TextField(sel.getNombreEmpresa());
-        TextField tfEmail = new TextField(sel.getEmail());
-        TextField tfDireccion = new TextField(sel.getDireccion());
-        TextField tfRut = new TextField(sel.getRut());
+        ComboBox<Proveedor> cbProveedores = new ComboBox<>(FXCollections.observableArrayList(proveedores));
+        cbProveedores.setPromptText("Seleccionar proveedor");
+        cbProveedores.setMaxWidth(Double.MAX_VALUE);
+        cbProveedores.setConverter(new javafx.util.StringConverter<>() {
+            @Override public String toString(Proveedor p) { return p == null ? "" : (p.getNombreEmpresa() == null ? p.getId() : p.getNombreEmpresa()); }
+            @Override public Proveedor fromString(String string) { return null; }
+        });
+
+        TextField tfNombreEmpresa = new TextField();
+        TextField tfEmail = new TextField();
+        TextField tfDireccion = new TextField();
+        TextField tfRut = new TextField();
+
         Label lblError = new Label();
         Button btnSave = new Button("Guardar");
         Button btnCancel = new Button("Cancelar");
-        HBox btns = new HBox(8, btnSave, btnCancel); btns.setAlignment(Pos.CENTER_RIGHT);
+        HBox btns = new HBox(8, btnSave, btnCancel);
+        btns.setAlignment(Pos.CENTER_RIGHT);
+
+        cbProveedores.setOnAction(e -> {
+            Proveedor p = cbProveedores.getValue();
+            if (p != null) {
+                tfNombreEmpresa.setText(p.getNombreEmpresa() == null ? "" : p.getNombreEmpresa());
+                tfEmail.setText(p.getEmail() == null ? "" : p.getEmail());
+                tfDireccion.setText(p.getDireccion() == null ? "" : p.getDireccion());
+                tfRut.setText(p.getRut() == null ? "" : p.getRut());
+            } else {
+                tfNombreEmpresa.clear(); tfEmail.clear(); tfDireccion.clear(); tfRut.clear();
+            }
+        });
 
         btnSave.setOnAction(e -> {
+            Proveedor sel = cbProveedores.getValue();
+            if (sel == null) { lblError.setText("Selecciona un proveedor."); return; }
             String nombreEmpresa = tfNombreEmpresa.getText().trim();
             String email = tfEmail.getText().trim();
             String direccion = tfDireccion.getText().trim();
@@ -241,11 +266,19 @@ public class ProveedoresController {
             boolean ok = JsonManager.actualizarProveedor(sel.getId(), actualizado);
             if (ok) { cargarDatos(); dialog.close(); } else { lblError.setText("No se pudo actualizar el proveedor."); }
         });
+
         btnCancel.setOnAction(ev -> dialog.close());
 
-        root.getChildren().addAll(new Label("Nombre Empresa:"), tfNombreEmpresa, new Label("Email:"), tfEmail, new Label("Dirección:"), tfDireccion, new Label("RUT:"), tfRut, lblError, btns);
-        Scene scene2 = new Scene(root, 400, 300);
-        dialog.setScene(scene2);
+        root.getChildren().addAll(new Label("Proveedor:"), cbProveedores,
+                new Label("Nombre Empresa:"), tfNombreEmpresa,
+                new Label("Email:"), tfEmail,
+                new Label("Dirección:"), tfDireccion,
+                new Label("RUT:"), tfRut,
+                lblError,
+                btns);
+
+        Scene scene = new Scene(root, 420, 360);
+        dialog.setScene(scene);
         dialog.showAndWait();
     }
 
@@ -262,7 +295,6 @@ public class ProveedoresController {
         info.setStyle("-fx-font-weight: bold;");
         Label lblNombre = new Label("Proveedor: " + proveedor.getNombreEmpresa());
 
-        TextField tfNumeroFactura = new TextField(); tfNumeroFactura.setPromptText("Número de factura");
         ComboBox<String> cbMetodoPago = new ComboBox<>(FXCollections.observableArrayList("Efectivo", "Transferencia", "Tarjeta", "Crédito"));
         cbMetodoPago.setPromptText("Método de pago");
         TextArea taNotas = new TextArea(); taNotas.setPromptText("Notas u observaciones"); taNotas.setPrefRowCount(3);
@@ -286,7 +318,8 @@ public class ProveedoresController {
         });
         TableColumn<ProductoCantidad, Number> colSubtotal = new TableColumn<>("Subtotal");
         colSubtotal.setCellValueFactory(pc -> new SimpleDoubleProperty(pc.getValue().getSubtotal()));
-        tablaProductos.getColumns().addAll(colNombre, colPrecio, colStock, colCantidad, colSubtotal);
+        final java.util.List<TableColumn<ProductoCantidad, ?>> _colsProductos = java.util.Arrays.asList(colNombre, colPrecio, colStock, colCantidad, colSubtotal);
+        tablaProductos.getColumns().addAll(_colsProductos);
         Platform.runLater(() -> {
             try {
                 var cols = tablaProductos.getColumns();
@@ -306,26 +339,25 @@ public class ProveedoresController {
         HBox btns = new HBox(8, btnCrear, btnCancelar); btns.setAlignment(Pos.CENTER_RIGHT);
 
         btnCrear.setOnAction(e -> {
-            String numeroFactura = tfNumeroFactura.getText().trim();
             String metodoPago = cbMetodoPago.getValue();
             String notas = taNotas.getText().trim();
-            if (numeroFactura.isEmpty() || metodoPago == null) { lblError.setText("Número de factura y método de pago son obligatorios."); return; }
+            if (metodoPago == null) { lblError.setText("El método de pago es obligatorio."); return; }
             List<Compra.Item> items = new ArrayList<>(); double total = 0;
             for (ProductoCantidad pc : productosData) { if (pc.getCantidad() > 0) { total += pc.getSubtotal(); items.add(new Compra.Item(pc.producto.getId(), pc.producto.getNombre(), pc.getCantidad(), pc.producto.getPrecio())); } }
             if (items.isEmpty()) { lblError.setText("Selecciona cantidades para al menos un producto."); return; }
             // No actualizamos el stock aquí: JsonManager.agregarCompra se encarga de actualizar el stock de los productos.
             Compra compra = new Compra();
-            compra.setId(JsonManager.generarIdCompra()); compra.setProveedorId(proveedor.getId()); compra.setNumeroFactura(numeroFactura);
+            compra.setId(JsonManager.generarIdCompra()); compra.setProveedorId(proveedor.getId());
             compra.setMetodoPago(metodoPago); compra.setTotal(total); compra.setItems(items); compra.setNotas(notas);
             boolean guardada = JsonManager.agregarCompra(compra);
             if (!guardada) { lblError.setText("Error guardando la compra."); return; }
             updateTotal(lblTotal, productosData);
-            new Alert(Alert.AlertType.INFORMATION, "Compra creada para '" + proveedor.getNombreEmpresa() + "'\n" + "Factura: " + numeroFactura + "\n" + "Pago: " + metodoPago + "\n" + "Total: $" + String.format("%.2f", total)).showAndWait();
+            new Alert(Alert.AlertType.INFORMATION, "Compra creada para '" + proveedor.getNombreEmpresa() + "'\n" + "Factura: " + compra.getId() + "\n" + "Pago: " + metodoPago + "\n" + "Total: $" + String.format("%.2f", total)).showAndWait();
             dialog.close();
         });
         btnCancelar.setOnAction(ev -> dialog.close());
 
-        VBox form = new VBox(8, new Label("Número de factura:"), tfNumeroFactura, new Label("Método de pago:"), cbMetodoPago, new Label("Notas:"), taNotas, new Label("Productos y cantidades:"), tablaProductos, lblTotal, lblError);
+        VBox form = new VBox(8, new Label("Método de pago:"), cbMetodoPago, new Label("Notas:"), taNotas, new Label("Productos y cantidades:"), tablaProductos, lblTotal, lblError);
         root.getChildren().addAll(info, lblNombre, form, btns);
         Scene scene3 = new Scene(root, 700, 500);
         dialog.setScene(scene3);

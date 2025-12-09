@@ -82,9 +82,40 @@ public class ComprasView {
         colProveedor.setPrefWidth(220);
 
         TableColumn<Compra, String> colFactura = new TableColumn<>();
-        colFactura.setCellValueFactory(cdf -> new SimpleStringProperty(cdf.getValue().getNumeroFactura()));
+        colFactura.setCellValueFactory(cdf -> new SimpleStringProperty(cdf.getValue().getId()));
         Label lblColFact = new Label("Factura"); lblColFact.setStyle("-fx-font-weight: bold;"); colFactura.setGraphic(lblColFact); colFactura.setStyle("-fx-alignment: CENTER;");
         colFactura.setPrefWidth(120);
+
+        // Columna Fecha (mostrar solo dd/MM/yyyy)
+        TableColumn<Compra, String> colFecha = new TableColumn<>();
+        colFecha.setCellValueFactory(cdf -> {
+            String raw = cdf.getValue() != null ? cdf.getValue().getFecha() : null;
+            String out = "-";
+            if (raw != null && !raw.trim().isEmpty()) {
+                try {
+                    java.time.LocalDateTime ldt = java.time.LocalDateTime.parse(raw);
+                    out = ldt.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+                } catch (Exception ex1) {
+                    try {
+                        java.time.LocalDate ld = java.time.LocalDate.parse(raw);
+                        out = ld.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+                    } catch (Exception ex2) {
+                        try {
+                            if (raw.contains("T")) {
+                                String datePart = raw.split("T")[0];
+                                java.time.LocalDate ld2 = java.time.LocalDate.parse(datePart);
+                                out = ld2.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+                            } else {
+                                out = raw;
+                            }
+                        } catch (Exception ex3) { out = raw; }
+                    }
+                }
+            }
+            return new SimpleStringProperty(out);
+        });
+        Label lblColFecha = new Label("Fecha"); lblColFecha.setStyle("-fx-font-weight: bold;"); colFecha.setGraphic(lblColFecha); colFecha.setStyle("-fx-alignment: CENTER;");
+        colFecha.setPrefWidth(160);
 
         TableColumn<Compra, Number> colTotal = new TableColumn<>();
         colTotal.setCellValueFactory(cdf -> new SimpleDoubleProperty(cdf.getValue().getTotal()));
@@ -116,7 +147,8 @@ public class ComprasView {
                 });
                 btnEliminar.setOnAction(evt -> {
                     Compra compra = getTableView().getItems().get(getIndex());
-                    Alert confirm = new Alert(Alert.AlertType.CONFIRMATION, "¿Eliminar compra '" + compra.getNumeroFactura() + "'?", ButtonType.YES, ButtonType.NO);
+                    String facturaOrId = compra.getId();
+                    Alert confirm = new Alert(Alert.AlertType.CONFIRMATION, "¿Eliminar compra '" + facturaOrId + "'?", ButtonType.YES, ButtonType.NO);
                     confirm.showAndWait().ifPresent(bt -> {
                         if (bt == ButtonType.YES) {
                             boolean ok = JsonManager.eliminarCompra(compra.getId());
@@ -127,8 +159,8 @@ public class ComprasView {
                             }
                         }
                     });
-                });
-            }
+                 });
+             }
             @Override
             protected void updateItem(Void item, boolean empty) {
                 super.updateItem(item, empty);
@@ -142,7 +174,8 @@ public class ComprasView {
         Label lblColAccion = new Label("Acción"); lblColAccion.setStyle("-fx-font-weight: bold;"); colAccion.setGraphic(lblColAccion); colAccion.setStyle("-fx-alignment: CENTER;");
         colAccion.setPrefWidth(160);
 
-        final java.util.List<TableColumn<Compra, ?>> _cols = java.util.Arrays.asList(colId, colProveedor, colFactura, colTotal, colPago, colAccion);
+        // No incluimos la columna 'ID' en la tabla pública para no mostrarla en la vista
+        final java.util.List<TableColumn<Compra, ?>> _cols = java.util.Arrays.asList(colProveedor, colFactura, colFecha, colTotal, colPago, colAccion);
         table.getColumns().addAll(_cols);
         Platform.runLater(() -> {
             try {
@@ -162,9 +195,9 @@ public class ComprasView {
                 if (q.isEmpty()) return true;
                 Proveedor p = proveedoresById.get(compra.getProveedorId());
                 String provName = p != null ? p.getNombreEmpresa() : "";
-                return provName.toLowerCase().contains(q) ||
-                        (compra.getNumeroFactura() != null && compra.getNumeroFactura().toLowerCase().contains(q)) ||
-                        (compra.getMetodoPago() != null && compra.getMetodoPago().toLowerCase().contains(q));
+                if (provName != null && provName.toLowerCase().contains(q)) return true;
+                if (compra.getId() != null && compra.getId().toLowerCase().contains(q)) return true;
+                return compra.getMetodoPago() != null && compra.getMetodoPago().toLowerCase().contains(q);
             });
         });
 
@@ -186,17 +219,31 @@ public class ComprasView {
     private void mostrarFactura(Compra compra) {
         Stage dialog = new Stage();
         dialog.initModality(Modality.APPLICATION_MODAL);
-        dialog.setTitle("Factura de Compra " + compra.getNumeroFactura());
+        // Mostrar diálogo sin campo de factura en la cabecera. El detalle no mostrará el campo factura.
+        dialog.setTitle("Factura de Compra");
 
         VBox root = new VBox(10);
         root.setPadding(new Insets(12));
 
         Proveedor p = proveedoresById.get(compra.getProveedorId());
         Label lblProv = new Label("Proveedor: " + (p != null ? p.getNombreEmpresa() : compra.getProveedorId()));
+        // Formatear fecha detalle (dd/MM/yyyy)
+        String fechaRaw = compra.getFecha();
+        String fechaFmt = "-";
+        if (fechaRaw != null && !fechaRaw.trim().isEmpty()) {
+            try { fechaFmt = java.time.LocalDateTime.parse(fechaRaw).format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")); }
+            catch (Exception ex1) {
+                try { fechaFmt = java.time.LocalDate.parse(fechaRaw).format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")); }
+                catch (Exception ex2) {
+                    try { if (fechaRaw.contains("T")) fechaFmt = java.time.LocalDate.parse(fechaRaw.split("T")[0]).format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")); else fechaFmt = fechaRaw; } catch (Exception ex3) { fechaFmt = fechaRaw; }
+                }
+            }
+        }
+        Label lblFecha = new Label("Fecha: " + fechaFmt);
         Label lblRut = new Label("RUT: " + (p != null && p.getRut() != null ? p.getRut() : "-"));
         Label lblDir = new Label("Dirección: " + (p != null && p.getDireccion() != null ? p.getDireccion() : "-"));
         Label lblCorreo = new Label("Correo: " + (p != null && p.getEmail() != null ? p.getEmail() : "-"));
-        Label lblFac = new Label("Factura: " + compra.getNumeroFactura());
+        Label lblFac = new Label("Factura: " + compra.getId());
 
         // Tabla de items: Producto | Cantidad | Precio unitario
         TableView<Compra.Item> tablaItems = new TableView<>();
@@ -261,8 +308,8 @@ public class ComprasView {
         Label lblIvaVal = new Label("IVA (19%): $" + String.format("%.2f", ivaVal));
         Label lblTotalVal = new Label("Total: $" + String.format("%.2f", totalVal));
 
-        // Agrupar información del proveedor en una columna
-        VBox proveedorBox = new VBox(4, lblProv, lblRut, lblDir, lblCorreo, lblFac);
+        // Agrupar información del proveedor en una columna (incluye etiqueta fecha y factura)
+        VBox proveedorBox = new VBox(4, lblProv, lblFecha, lblRut, lblDir, lblCorreo, lblFac);
         proveedorBox.setPadding(new Insets(4,0,6,0));
 
         VBox totalesBox = new VBox(6, lblSubtotalVal, lblIvaVal, lblTotalVal);

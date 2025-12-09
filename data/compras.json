@@ -1,17 +1,17 @@
 [
   {
-    "id": "2",
+    "id": "1",
     "proveedorId": "1",
-    "numeroFactura": "1320",
-    "metodoPago": "Efectivo",
-    "total": 1100000.0,
+    "metodoPago": "Transferencia",
+    "total": 90000.0,
     "notas": "",
+    "fecha": "2025-12-09T18:08:16.0976718",
     "items": [
       {
-        "productoId": "2",
-        "nombreProducto": "Aguardiente Antioqueño Rojo 1L",
-        "cantidad": 11,
-        "precio": 100000.0
+        "productoId": "6",
+        "nombreProducto": "Four Loko Sandia",
+        "cantidad": 6,
+        "precio": 15000.0
       }
     ]
   }
