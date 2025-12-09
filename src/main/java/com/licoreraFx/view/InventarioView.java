@@ -24,6 +24,10 @@ import javafx.stage.Stage;
 import java.io.File;
 import java.util.List;
 
+/**
+ * Vista de inventario que muestra productos y detalle.
+ * Permite añadir/modificar/eliminar productos (según rol).
+ */
 public class InventarioView {
 
     private ListView<Producto> listView;
@@ -34,7 +38,10 @@ public class InventarioView {
         return createView(false);
     }
 
-    // Nueva versión: permitir modo vendedor (isVendor==true oculta acciones)
+    /**
+     * Crea la vista de inventario.
+     * @param isVendor Si true oculta acciones de gestión.
+     */
     public Node createView(boolean isVendor) {
         VBox root = new VBox(10);
         root.setPadding(new Insets(12));

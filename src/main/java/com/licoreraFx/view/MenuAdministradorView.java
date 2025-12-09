@@ -16,7 +16,14 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
+/**
+ * Vista principal para el menú del administrador.
+ * Contiene botones para navegar entre las diferentes gestiones.
+ */
 public class MenuAdministradorView {
+    /**
+     * Muestra la ventana del menú del administrador.
+     */
     public void mostrar(Stage stage) {
         Label title = new Label("Menú Administrador");
         // title.setStyle("-fx-font-size: 22px; -fx-font-weight: bold;");

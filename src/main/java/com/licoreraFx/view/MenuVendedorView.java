@@ -26,6 +26,10 @@ import java.util.List;
 
 @SuppressWarnings("unused")
 public class MenuVendedorView {
+    /**
+     * Muestra la ventana del menú para el vendedor.
+     * Las opciones disponibles son limitadas respecto al administrador.
+     */
     public void mostrar(Stage stage) {
         Label title = new Label("Menú Vendedor");
 

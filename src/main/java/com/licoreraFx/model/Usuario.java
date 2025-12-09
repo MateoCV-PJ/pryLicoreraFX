@@ -1,5 +1,9 @@
 package com.licoreraFx.model;
 
+/**
+ * Modelo de usuario del sistema.
+ * Contiene credenciales y datos básicos del usuario.
+ */
 public class Usuario {
     private String id; // nuevo campo
     private String username;

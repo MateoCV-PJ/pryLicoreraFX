@@ -9,6 +9,10 @@ import com.licoreraFx.repository.VentaRepository;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Servicio que encapsula la lógica de negocio para crear ventas.
+ * Valida stock, actualiza inventario y persiste la venta.
+ */
 public class VentaService {
     private static final Object LOCK = new Object();
 
@@ -54,4 +58,3 @@ public class VentaService {
         }
     }
 }
-

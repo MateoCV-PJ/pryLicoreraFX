@@ -3,6 +3,10 @@ package com.licoreraFx.model;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Modelo que representa una compra a proveedor.
+ * Contiene items, totales y metadatos de la compra.
+ */
 public class Compra {
     private String id;            // autoincremental en JSON
     private String proveedorId;   // id del proveedor
@@ -12,6 +16,9 @@ public class Compra {
     private String notas;         // opcional
     private List<Item> items = new ArrayList<>(); // detalle de productos
 
+    /**
+     * Elemento de la compra que representa un producto y su cantidad/precio.
+     */
     public static class Item {
         private String productoId;
         private String nombreProducto;

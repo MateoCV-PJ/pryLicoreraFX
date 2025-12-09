@@ -27,6 +27,10 @@ import java.util.List;
 import com.licoreraFx.model.Cliente;
 import com.licoreraFx.repository.ClienteRepository;
 
+/**
+ * Vista para listar y gestionar ventas.
+ * Permite ver detalle y eliminar ventas.
+ */
 public class VentasView {
 
     private ObservableList<Venta> masterData;

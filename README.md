@@ -89,10 +89,3 @@ Los datos de ejemplo están en la carpeta `data/` como archivos JSON. No se elim
 Sin licencia especificada. Añada un archivo `LICENSE` si desea aplicar una licencia concreta (por ejemplo MIT, Apache-2.0).
 
 ---
-
-Si quiere, puedo:
-- Añadir un `.gitignore` recomendado para evitar subir `target/` y artefactos.
-- Generar un script PowerShell para crear un respaldo y limpiar artefactos automáticamente.
-- Revisar y listar archivos candidatos para eliminación segura (duplicados, FXML o controladores sin uso).
-
-Indique cuál de estas acciones quiere que haga a continuación.

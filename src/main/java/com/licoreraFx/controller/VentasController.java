@@ -25,6 +25,10 @@ import java.net.URL;
 import java.util.List;
 import java.util.ResourceBundle;
 
+/**
+ * Controlador para la gestión de ventas.
+ * Carga la lista de ventas y permite ver facturas y eliminar ventas.
+ */
 public class VentasController implements Initializable {
 
     @FXML private TextField tfSearch;
@@ -33,6 +37,9 @@ public class VentasController implements Initializable {
     private ObservableList<Venta> masterData;
     private FilteredList<Venta> filtered;
 
+    /**
+     * Inicializa la vista de tabla de ventas: carga datos y configura columnas y filtros.
+     */
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         List<Venta> ventas = JsonManager.listarVentas();
@@ -92,6 +99,10 @@ public class VentasController implements Initializable {
         tablaVentas.setItems(sorted);
     }
 
+    /**
+     * Inserta la vista de ventas en el área de contenido dada.
+     * @param contentArea Contenedor donde se mostrará la vista.
+     */
     public void mostrar(VBox contentArea) {
         // Mostrar siempre la vista programática para evitar el uso de FXML
         Node view = createViewProgramatic();
@@ -106,6 +117,10 @@ public class VentasController implements Initializable {
         return root;
     }
 
+    /**
+     * Muestra una ventana modal con la factura de la venta seleccionada.
+     * @param venta Venta cuya factura se mostrará.
+     */
     private void mostrarFactura(Venta venta) {
         Stage dialog = new Stage();
         dialog.initModality(Modality.APPLICATION_MODAL);

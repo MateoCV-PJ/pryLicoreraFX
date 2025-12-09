@@ -26,6 +26,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * Controlador para la gestión de compras.
+ * Lista compras, permite buscar y ver facturas de compra.
+ */
 public class ComprasController {
 
     private TableView<Compra> table;
@@ -33,6 +37,10 @@ public class ComprasController {
     private FilteredList<Compra> filtered;
     private Map<String, Proveedor> proveedoresById;
 
+    /**
+     * Crea la vista programática de compras.
+     * @return Nodo con la interfaz de compras.
+     */
     public Node createView() {
         VBox root = new VBox(10);
         root.setPadding(new Insets(12));
@@ -139,6 +147,10 @@ public class ComprasController {
         return root;
     }
 
+    /**
+     * Muestra la vista de compras en el área de contenido especificada.
+     * @param contentArea El área de contenido donde se mostrará la vista.
+     */
     public void mostrar(VBox contentArea) {
         // Mostrar la vista programática para evitar el uso de FXML
         Node view = createView();

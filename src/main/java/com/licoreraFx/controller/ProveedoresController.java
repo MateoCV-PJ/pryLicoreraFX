@@ -27,12 +27,20 @@ import javafx.stage.Stage;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Controlador para gestionar proveedores y crear compras.
+ * Permite listar, buscar, añadir, modificar y eliminar proveedores.
+ */
 public class ProveedoresController {
 
     private TableView<Proveedor> table;
     private ObservableList<Proveedor> masterData;
     private FilteredList<Proveedor> filtered;
 
+    /**
+     * Crea la vista programática de proveedores.
+     * @return Nodo con la interfaz de proveedores.
+     */
     public Node createView() {
         VBox root = new VBox(10);
         root.setPadding(new Insets(12));
@@ -126,6 +134,10 @@ public class ProveedoresController {
         return root;
     }
 
+    /**
+     * Inserta la vista de proveedores en el área de contenido dada.
+     * @param contentArea Contenedor donde se mostrará la vista.
+     */
     public void mostrar(VBox contentArea) {
         // Mostrar siempre la vista programática para evitar el uso de FXML
         Node view = createView();

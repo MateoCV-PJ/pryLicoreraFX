@@ -5,6 +5,10 @@ import com.licoreraFx.util.JsonManager;
 
 import java.util.List;
 
+/**
+ * Repositorio para compras.
+ * Provee operaciones sincronizadas para listar, crear y eliminar compras.
+ */
 public class CompraRepository {
     private static final Object LOCK = new Object();
 
@@ -38,4 +42,3 @@ public class CompraRepository {
         }
     }
 }
-

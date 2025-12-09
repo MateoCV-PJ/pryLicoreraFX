@@ -21,6 +21,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+/**
+ * Utilitario para leer y escribir datos JSON en la carpeta `data`.
+ * Provee métodos simples para entidades: usuarios, clientes, proveedores,
+ * productos, ventas y compras.
+ */
 public class JsonManager {
 
     private static final String USUARIOS_PATH = "data/usuarios.json";
@@ -35,6 +40,11 @@ public class JsonManager {
             .setPrettyPrinting()
             .create();
 
+    /**
+     * Lista todos los usuarios desde el archivo JSON.
+     *
+     * @return Lista de usuarios.
+     */
     public static List<Usuario> listarUsuarios() {
         try {
             Path path = Path.of(USUARIOS_PATH);
@@ -52,6 +62,11 @@ public class JsonManager {
         }
     }
 
+    /**
+     * Lista todos los usuarios con rol de vendedor.
+     *
+     * @return Lista de usuarios vendedores.
+     */
     public static List<Usuario> listarVendedores() {
         try {
             List<Usuario> usuarios = listarUsuarios();
@@ -64,6 +79,12 @@ public class JsonManager {
         }
     }
 
+    /**
+     * Guarda la lista de usuarios en el archivo JSON.
+     *
+     * @param usuarios Lista de usuarios a guardar.
+     * @return Verdadero si la operación fue exitosa, falso en caso contrario.
+     */
     public static boolean guardarUsuarios(List<Usuario> usuarios) {
         try {
             Path path = Path.of(USUARIOS_PATH);
@@ -81,6 +102,12 @@ public class JsonManager {
         }
     }
 
+    /**
+     * Agrega un nuevo usuario.
+     *
+     * @param usuario Usuario a agregar.
+     * @return Verdadero si el usuario fue agregado, falso si ya existe.
+     */
     public static boolean agregarUsuario(Usuario usuario) {
         try {
             List<Usuario> usuarios = listarUsuarios();
@@ -108,6 +135,13 @@ public class JsonManager {
         }
     }
 
+    /**
+     * Actualiza los datos de un usuario existente.
+     *
+     * @param usernameOriginal Nombre de usuario original.
+     * @param usuarioActualizado Objeto Usuario con los datos actualizados.
+     * @return Verdadero si la actualización fue exitosa, falso en caso contrario.
+     */
     public static boolean actualizarUsuario(String usernameOriginal, Usuario usuarioActualizado) {
         try {
             List<Usuario> usuarios = listarUsuarios();
@@ -136,6 +170,12 @@ public class JsonManager {
         }
     }
 
+    /**
+     * Elimina un usuario por su nombre de usuario.
+     *
+     * @param username Nombre de usuario a eliminar.
+     * @return Verdadero si el usuario fue eliminado, falso en caso contrario.
+     */
     public static boolean eliminarUsuario(String username) {
         try {
             List<Usuario> usuarios = listarUsuarios();
@@ -148,6 +188,12 @@ public class JsonManager {
         }
     }
 
+    /**
+     * Busca un usuario por su nombre de usuario.
+     *
+     * @param username Nombre de usuario a buscar.
+     * @return Un objeto Optional con el usuario encontrado, o vacío si no se encontró.
+     */
     public static Optional<Usuario> buscarUsuarioPorNombre(String username) {
         if (username == null) return Optional.empty();
         List<Usuario> usuarios = listarUsuarios();
@@ -157,6 +203,11 @@ public class JsonManager {
     }
 
     // ----------------- Métodos para clientes -----------------
+    /**
+     * Lista todos los clientes desde el archivo JSON.
+     *
+     * @return Lista de clientes.
+     */
     public static List<Cliente> listarClientes() {
         try {
             Path path = Path.of(CLIENTES_PATH);
@@ -174,6 +225,12 @@ public class JsonManager {
         }
     }
 
+    /**
+     * Guarda la lista de clientes en el archivo JSON.
+     *
+     * @param clientes Lista de clientes a guardar.
+     * @return Verdadero si la operación fue exitosa, falso en caso contrario.
+     */
     public static boolean guardarClientes(List<Cliente> clientes) {
         try {
             Path path = Path.of(CLIENTES_PATH);
@@ -190,6 +247,12 @@ public class JsonManager {
         }
     }
 
+    /**
+     * Agrega un nuevo cliente.
+     *
+     * @param cliente Cliente a agregar.
+     * @return Verdadero si el cliente fue agregado, falso si ya existe.
+     */
     public static boolean agregarCliente(Cliente cliente) {
         try {
             List<Cliente> clientes = listarClientes();
@@ -216,6 +279,13 @@ public class JsonManager {
         }
     }
 
+    /**
+     * Actualiza los datos de un cliente existente.
+     *
+     * @param idOriginal ID original del cliente.
+     * @param clienteActualizado Objeto Cliente con los datos actualizados.
+     * @return Verdadero si la actualización fue exitosa, falso en caso contrario.
+     */
     public static boolean actualizarCliente(String idOriginal, Cliente clienteActualizado) {
         try {
             List<Cliente> clientes = listarClientes();
@@ -244,6 +314,12 @@ public class JsonManager {
         }
     }
 
+    /**
+     * Elimina un cliente por su ID.
+     *
+     * @param id ID del cliente a eliminar.
+     * @return Verdadero si el cliente fue eliminado, falso en caso contrario.
+     */
     public static boolean eliminarCliente(String id) {
         try {
             List<Cliente> clientes = listarClientes();
@@ -256,6 +332,12 @@ public class JsonManager {
         }
     }
 
+    /**
+     * Busca un cliente por su ID.
+     *
+     * @param id ID del cliente a buscar.
+     * @return Un objeto Optional con el cliente encontrado, o vacío si no se encontró.
+     */
     public static Optional<Cliente> buscarClientePorId(String id) {
         if (id == null) return Optional.empty();
         List<Cliente> clientes = listarClientes();
@@ -263,6 +345,11 @@ public class JsonManager {
     }
 
     // ----------------- Métodos para proveedores -----------------
+    /**
+     * Lista todos los proveedores desde el archivo JSON.
+     *
+     * @return Lista de proveedores.
+     */
     public static List<Proveedor> listarProveedores() {
         try {
             Path path = Path.of(PROVEEDORES_PATH);
@@ -280,6 +367,12 @@ public class JsonManager {
         }
     }
 
+    /**
+     * Guarda la lista de proveedores en el archivo JSON.
+     *
+     * @param proveedores Lista de proveedores a guardar.
+     * @return Verdadero si la operación fue exitosa, falso en caso contrario.
+     */
     public static boolean guardarProveedores(List<Proveedor> proveedores) {
         try {
             Path path = Path.of(PROVEEDORES_PATH);
@@ -296,6 +389,12 @@ public class JsonManager {
         }
     }
 
+    /**
+     * Agrega un nuevo proveedor.
+     *
+     * @param proveedor Proveedor a agregar.
+     * @return Verdadero si el proveedor fue agregado, falso si ya existe.
+     */
     public static boolean agregarProveedor(Proveedor proveedor) {
         try {
             List<Proveedor> proveedores = listarProveedores();
@@ -321,6 +420,13 @@ public class JsonManager {
         }
     }
 
+    /**
+     * Actualiza los datos de un proveedor existente.
+     *
+     * @param idOriginal ID original del proveedor.
+     * @param proveedorActualizado Objeto Proveedor con los datos actualizados.
+     * @return Verdadero si la actualización fue exitosa, falso en caso contrario.
+     */
     public static boolean actualizarProveedor(String idOriginal, Proveedor proveedorActualizado) {
         try {
             List<Proveedor> proveedores = listarProveedores();
@@ -348,6 +454,12 @@ public class JsonManager {
         }
     }
 
+    /**
+     * Elimina un proveedor por su ID.
+     *
+     * @param id ID del proveedor a eliminar.
+     * @return Verdadero si el proveedor fue eliminado, falso en caso contrario.
+     */
     public static boolean eliminarProveedor(String id) {
         try {
             List<Proveedor> proveedores = listarProveedores();
@@ -361,6 +473,11 @@ public class JsonManager {
     }
 
     // ----------------- Métodos para productos -----------------
+    /**
+     * Lista todos los productos desde el archivo JSON.
+     *
+     * @return Lista de productos.
+     */
     public static List<Producto> listarProductos() {
         try {
             Path path = Path.of(PRODUCTOS_PATH);
@@ -378,6 +495,12 @@ public class JsonManager {
         }
     }
 
+    /**
+     * Guarda la lista de productos en el archivo JSON.
+     *
+     * @param productos Lista de productos a guardar.
+     * @return Verdadero si la operación fue exitosa, falso en caso contrario.
+     */
     public static boolean guardarProductos(List<Producto> productos) {
         try {
             Path path = Path.of(PRODUCTOS_PATH);
@@ -394,6 +517,12 @@ public class JsonManager {
         }
     }
 
+    /**
+     * Agrega un nuevo producto.
+     *
+     * @param producto Producto a agregar.
+     * @return Verdadero si el producto fue agregado, falso si ya existe.
+     */
     public static boolean agregarProducto(Producto producto) {
         try {
             List<Producto> productos = listarProductos();
@@ -419,6 +548,13 @@ public class JsonManager {
         }
     }
 
+    /**
+     * Actualiza los datos de un producto existente.
+     *
+     * @param idOriginal ID original del producto.
+     * @param productoActualizado Objeto Producto con los datos actualizados.
+     * @return Verdadero si la actualización fue exitosa, falso en caso contrario.
+     */
     public static boolean actualizarProducto(String idOriginal, Producto productoActualizado) {
         try {
             List<Producto> productos = listarProductos();
@@ -446,6 +582,12 @@ public class JsonManager {
         }
     }
 
+    /**
+     * Elimina un producto por su ID.
+     *
+     * @param id ID del producto a eliminar.
+     * @return Verdadero si el producto fue eliminado, falso en caso contrario.
+     */
     public static boolean eliminarProducto(String id) {
         try {
             List<Producto> productos = listarProductos();
@@ -459,6 +601,11 @@ public class JsonManager {
     }
 
     // ----------------- Métodos para ventas -----------------
+    /**
+     * Lista todas las ventas desde el archivo JSON.
+     *
+     * @return Lista de ventas.
+     */
     public static List<Venta> listarVentas() {
         try {
             Path path = Path.of(VENTAS_PATH);
@@ -476,6 +623,12 @@ public class JsonManager {
         }
     }
 
+    /**
+     * Guarda la lista de ventas en el archivo JSON.
+     *
+     * @param ventas Lista de ventas a guardar.
+     * @return Verdadero si la operación fue exitosa, falso en caso contrario.
+     */
     public static boolean guardarVentas(List<Venta> ventas) {
         try {
             Path path = Path.of(VENTAS_PATH);
@@ -492,6 +645,12 @@ public class JsonManager {
         }
     }
 
+    /**
+     * Agrega una nueva venta.
+     *
+     * @param venta Venta a agregar.
+     * @return Verdadero si la venta fue agregada correctamente.
+     */
     public static boolean agregarVenta(Venta venta) {
         try {
             List<Venta> ventas = listarVentas();
@@ -517,6 +676,12 @@ public class JsonManager {
         }
     }
 
+    /**
+     * Elimina una venta por su ID.
+     *
+     * @param id ID de la venta a eliminar.
+     * @return Verdadero si la venta fue eliminada, falso en caso contrario.
+     */
     public static boolean eliminarVenta(String id) {
         try {
             List<Venta> ventas = listarVentas();
@@ -530,6 +695,11 @@ public class JsonManager {
     }
 
     // ----------------- Métodos para compras -----------------
+    /**
+     * Lista todas las compras desde el archivo JSON.
+     *
+     * @return Lista de compras.
+     */
     public static List<Compra> listarCompras() {
         try {
             Path path = Path.of(COMPRAS_PATH);
@@ -547,6 +717,12 @@ public class JsonManager {
         }
     }
 
+    /**
+     * Guarda la lista de compras en el archivo JSON.
+     *
+     * @param compras Lista de compras a guardar.
+     * @return Verdadero si la operación fue exitosa, falso en caso contrario.
+     */
     public static boolean guardarCompras(List<Compra> compras) {
         try {
             Path path = Path.of(COMPRAS_PATH);
@@ -563,6 +739,11 @@ public class JsonManager {
         }
     }
 
+    /**
+     * Genera un nuevo ID para una compra, basado en el máximo ID existente.
+     *
+     * @return Nuevo ID de compra.
+     */
     public static String generarIdCompra() {
         try {
             List<Compra> compras = listarCompras();
@@ -578,6 +759,12 @@ public class JsonManager {
         }
     }
 
+    /**
+     * Agrega una nueva compra.
+     *
+     * @param compra Compra a agregar.
+     * @return Verdadero si la compra fue agregada correctamente.
+     */
     public static boolean agregarCompra(Compra compra) {
         try {
             List<Compra> compras = listarCompras();
@@ -609,6 +796,12 @@ public class JsonManager {
         }
     }
 
+    /**
+     * Elimina una compra por su ID.
+     *
+     * @param id ID de la compra a eliminar.
+     * @return Verdadero si la compra fue eliminada, falso en caso contrario.
+     */
     public static boolean eliminarCompra(String id) {
         try {
             List<Compra> compras = listarCompras();

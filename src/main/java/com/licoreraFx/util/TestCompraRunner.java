@@ -6,6 +6,10 @@ import com.licoreraFx.model.Producto;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Pequeño runner para probar la creación de una compra y la actualización de stock.
+ * Se ejecuta desde la línea de comandos para pruebas rápidas en local.
+ */
 public class TestCompraRunner {
     public static void main(String[] args) {
         try {
@@ -49,4 +53,3 @@ public class TestCompraRunner {
         }
     }
 }
-

@@ -32,6 +32,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.ResourceBundle;
 
+/**
+ * Controlador para la gestión de clientes.
+ * Lista clientes y permite crear una nueva venta para un cliente.
+ */
 public class ClientesController implements Initializable {
 
     @FXML private TextField tfSearch;
@@ -84,6 +88,10 @@ public class ClientesController implements Initializable {
         tablaClientes.setItems(sorted);
     }
 
+    /**
+     * Inserta la vista de clientes en el área de contenido dada.
+     * @param contentArea Contenedor donde se mostrará la vista.
+     */
     public void mostrar(VBox contentArea) {
         // Mostrar la vista programática para evitar el uso de FXML
         Node view = createViewProgramatic();

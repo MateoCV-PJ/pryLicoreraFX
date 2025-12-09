@@ -22,6 +22,10 @@ import javafx.stage.Stage;
 
 import java.util.List;
 
+/**
+ * Vista para gestionar vendedores (usuarios con rol VENDEDOR).
+ * Permite añadir, modificar y eliminar vendedores.
+ */
 public class VendedoresView {
 
     private TableView<Usuario> table;
@@ -149,17 +153,27 @@ public class VendedoresView {
         return root;
     }
 
+    /**
+     * Muestra la vista de vendedores en el área de contenido especificada.
+     * @param contentArea El área de contenido donde se mostrará la vista.
+     */
     public void mostrar(VBox contentArea) {
         Node view = createView();
         contentArea.getChildren().clear();
         contentArea.getChildren().add(view);
     }
 
+    /**
+     * Carga los datos de vendedores desde el repositorio a la lista maestra.
+     */
     private void cargarDatos() {
         List<Usuario> vendedores = UsuarioRepository.listarVendedores();
         masterData.setAll(vendedores);
     }
 
+    /**
+     * Muestra el diálogo para agregar un nuevo vendedor.
+     */
     private void showAgregarVendedorDialog() {
         Stage dialog = new Stage();
         dialog.initModality(Modality.APPLICATION_MODAL);
@@ -226,6 +240,9 @@ public class VendedoresView {
         dialog.showAndWait();
     }
 
+    /**
+     * Muestra el diálogo para modificar un vendedor existente.
+     */
     private void showModificarVendedorDialog() {
         Usuario sel = table.getSelectionModel().getSelectedItem();
         if (sel == null) { new Alert(Alert.AlertType.WARNING, "Selecciona un vendedor para modificar.").showAndWait(); return; }

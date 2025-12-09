@@ -1,5 +1,8 @@
 package com.licoreraFx.model;
 
+/**
+ * Modelo que representa un proveedor.
+ */
 public class Proveedor {
     private String id;
     private String nombreEmpresa;

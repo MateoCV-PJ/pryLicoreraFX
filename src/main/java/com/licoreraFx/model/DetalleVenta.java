@@ -1,5 +1,9 @@
 package com.licoreraFx.model;
 
+/**
+ * Item que representa un producto dentro de una venta.
+ * Contiene cantidad, precio unitario y subtotal.
+ */
 public class DetalleVenta {
     private String productoId;
     private String nombreProducto;

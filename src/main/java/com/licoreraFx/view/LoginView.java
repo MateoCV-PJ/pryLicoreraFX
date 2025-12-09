@@ -13,17 +13,30 @@ import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
 import javafx.scene.input.KeyCode;
 
+/**
+ * Vista de inicio de sesión.
+ * Muestra los campos de usuario y contraseña y los botones de acción.
+ */
 public class LoginView {
 
+    // Stage principal de la vista
     private Stage stage;
+    // Campo para el nombre de usuario
     private TextField txtUsuario;
+    // Campo para la contraseña
     private PasswordField txtPassword;
+    // Botón para iniciar sesión
     private Button btnIniciarSesion;
+    // Etiqueta para mostrar mensajes de validación
     private Label lblIndicador; // indicador de validación
 
     // Handler que será llamado al presionar el botón
     private Runnable onLoginHandler;
 
+    /**
+     * Muestra la ventana de login en el stage dado.
+     * @param primaryStage Stage donde se mostrará la vista.
+     */
     public void mostrar(Stage primaryStage) {
         this.stage = primaryStage;
 
@@ -62,6 +75,10 @@ public class LoginView {
         }
     }
 
+    /**
+     * Crea el panel central con los controles de login.
+     * @return VBox con los controles de inicio de sesión.
+     */
     private VBox crearPanelLogin() {
         VBox panel = new VBox(20);
         panel.setAlignment(Pos.CENTER);
@@ -127,7 +144,7 @@ public class LoginView {
         txtPassword.textProperty().addListener((obs, oldVal, newVal) -> { if (lblIndicador.isVisible()) lblIndicador.setVisible(false); });
 
         // Botón iniciar sesión azul sobrio
-        btnIniciarSesion = new Button("INICIAR SESIÓN");
+        btnIniciarSesion = new Button("Iniciar Sesión");
         btnIniciarSesion.setPrefWidth(360);
         btnIniciarSesion.setPrefHeight(44);
         btnIniciarSesion.getStyleClass().add("dialog-button");
@@ -154,7 +171,7 @@ public class LoginView {
         btnIniciarSesion.setDefaultButton(true);
 
         // Botón 'Salir'
-        Button btnSalir = new Button("SALIR");
+        Button btnSalir = new Button("Salir");
         btnSalir.setPrefWidth(150);
         btnSalir.setPrefHeight(44);
         btnSalir.getStyleClass().add("button-secundario");
@@ -178,6 +195,12 @@ public class LoginView {
         return panel;
     }
 
+    /**
+     * Muestra una alerta simple con el título y mensaje dados.
+     * @param titulo Título de la alerta.
+     * @param mensaje Mensaje a mostrar.
+     * @param tipo Tipo de alerta.
+     */
     public void mostrarAlerta(String titulo, String mensaje, Alert.AlertType tipo) {
         Alert alerta = new Alert(tipo);
         alerta.setTitle(titulo);

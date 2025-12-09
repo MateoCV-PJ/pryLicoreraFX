@@ -28,6 +28,7 @@ import java.util.stream.Collectors;
 
 /**
  * Vista de Compras a Proveedores, similar a la gestión de Ventas.
+ * Permite listar compras y ver facturas.
  */
 public class ComprasView {
 
@@ -35,6 +36,9 @@ public class ComprasView {
     private FilteredList<Compra> filtered;
     private Map<String, Proveedor> proveedoresById;
 
+    /**
+     * Crea la vista programática de compras.
+     */
     public Node createView() {
         VBox root = new VBox(10);
         root.setPadding(new Insets(12));

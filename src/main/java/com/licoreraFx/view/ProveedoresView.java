@@ -28,6 +28,9 @@ import javafx.stage.Stage;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Vista para gestionar proveedores y crear compras.
+ */
 public class ProveedoresView {
 
     private TableView<Proveedor> table;

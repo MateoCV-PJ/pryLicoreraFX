@@ -1,5 +1,9 @@
 package com.licoreraFx.model;
 
+/**
+ * Modelo que representa un producto.
+ * Contiene nombre, descripción, precio, stock e imagen.
+ */
 public class Producto {
     private String id;
     private String nombre;
@@ -65,4 +69,3 @@ public class Producto {
         this.imagen = imagen;
     }
 }
-

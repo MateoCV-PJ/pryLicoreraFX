@@ -13,14 +13,26 @@ import javafx.stage.Stage;
 
 import java.util.Optional;
 
+/**
+ * Controlador para la lógica de inicio de sesión.
+ * Valida credenciales y abre la vista correspondiente según el rol.
+ */
 public class LoginController {
 
     private final LoginView view;
 
+    /**
+     * Constructor que recibe la vista de login.
+     * @param view Vista de inicio de sesión.
+     */
     public LoginController(LoginView view) {
         this.view = view;
     }
 
+    /**
+     * Maneja la acción de inicio de sesión.
+     * Valida campos, verifica credenciales y abre el menú según el rol.
+     */
     public void onLoginAction() {
         String usuario = Validador.normalizarUsuario(view.getUsuario());
         String password = view.getPassword();
